@@ -1,0 +1,126 @@
+CRITICAL_ELEMENT:
+  #Android App测试时，需指定App包名和启动的Activity
+  PACKAGE_NAME: com.youdao.calculator
+  MAIN_ACTIVITY: com.youdao.calculator.activities.MainActivity
+  #通过xpath过滤出要点击的元素， 注意值两侧要加单引号''
+  ANDROID_CLICK_XPATH_HEADER: ' ( string-length(@text)<30  or contains(@text,"允许") ) '
+
+# 全局配置
+GENERAL:
+  #控制是否生成截图, false时不会生成截图 但能提高运行速度
+  ENABLE_SCREEN_SHOT: true
+  #控制是否生成视频
+  GENERATE_VIDEO: true
+  #截屏数量限制
+  SCREENSHOT_COUNT: 1000
+  #达到截屏限制数量时删除所有截屏
+  ENABLE_DELETE_SCREEN: false
+  #Crash时截图显示步骤数量
+  CRASH_PIC_COUNT: 10
+  #遍历深度
+  MAX_DEPTH: 10
+  #点击次数
+  MAX_CLICK_COUNT: 1000000
+  #查找元素的时间
+  DEFAULT_WAIT_SEC: 3
+  #查找元素的间隔时间
+  DEFAULT_POLLING_INTERVAL_SEC: 2
+  #是否忽略Crash,设为true时,crash后会重启app然后继续遍历
+  IGNORE_CRASH: true
+  #遍历的过程中进行向上划动操作  ！！！此项会加长遍历时间！！！
+  ENABLE_VERTICAL_SWIPE: false
+  #运行时间限制(分钟)
+  CRAWLER_RUNNING_TIME: 720
+  #每个UI变化X次时，检测是否需要自动登录
+  USER_LOGIN_INTERVAL: 5
+
+# 默认值
+DEFAULT_VALUE:
+  # Appium Server地址，0.0.0.0代表本地运行
+  APPIUM_SERVER_IP: 0.0.0.0
+  # Appium 端口
+  APPIUM_PORT: 4723
+
+#****************************************************以下内容通常不需要修改****************************************************
+
+#（可选）以下各值主要用于提高测试的效率，根据app着情修改或者不改
+LIST:
+
+  #待输入文本的控制类型
+  INPUT_CLASS_LIST:
+    - android.widget.TextView
+    - XCUIElementTypeTextField
+    - XCUIElementTypeSecureTextField
+
+  #待输入的文本（随机选中后选列表中的一个）
+  INPUT_TEXT_LIST:
+    - '123'
+    - 'ABC'
+
+  #UI元素中出现下列文字时 触发back键
+  PRESS_BACK_TEXT_LIST:
+    - 返回
+
+  #当pp跳转到以下app时 触发back键
+  PRESS_BACK_PACKAGE_LIST:
+    - 高德地图
+    - com.autonavi.minimap
+    - com.android.settings
+    - com.tencent.mm
+
+  #当前遇到以下Activity时 触发back键
+  PRESS_BACK_ACTIVITY_LIST:
+    - .mvp.servicecenter.view.ServiceCenterMapDetailActivity
+    - activity.SobotChatActivity
+    - com.android.internal.app.ResolverActivity
+
+  #不点击包含以下文本的控件
+  ITEM_BLACKLIST:
+    - 客服
+    - 退出
+    - 电话
+    - 不允许
+    - 拒绝
+    - 拍照
+    - 禁止
+    - 呼叫
+    - 低电量模式
+    - 关闭
+    - '//*[@text="去付款"]'
+    - '//*[@text="vConsole"]'
+    - '//*[@resource-id="__vconsole"]'
+
+  #除了APP本身的包名外 根据以下包名判断是否跳出了APP,当app跳转到以下app时被认为是合法，会继续遍历操作
+  ANDROID_VALID_PACKAGE_LIST:
+    - com.android.server.telecom
+    - gallery
+    - packageinstaller
+
+  #白名单，遇到包含以下文本的控件，会多次点击（默认所有控件只点一次）
+  ITEM_WHITE_LIST:
+    - 确定
+    - 允许
+    - 取消
+    - 已解决
+    - 提交
+
+  #不点击以下类型的元素
+  ANDROID_EXCLUDE_TYPE:
+    - android.widget.FrameLayout
+    - android.widget.ImageButton
+
+  #解释待续
+  NODE_NAME_EXCLUDE_LIST:
+    - selected
+    - instance
+    - checked
+    - naf
+    - content
+
+  #解释待续
+  STRUCTURE_NODE_NAME_EXCLUDE_LIST:
+    #iOS
+    - name
+
+    #Android
+    - text

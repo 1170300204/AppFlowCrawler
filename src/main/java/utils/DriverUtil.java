@@ -51,5 +51,26 @@ public final class DriverUtil {
 
     }
 
+    public static String getPageSource() {
+        return getPageSourceWithSleep(1);
+    }
+
+    public static String getPageSourceWithSleep(double seconds) {
+        log.info("Get PageSource ...");
+
+        if (seconds > 0) {
+            sleep(seconds);
+        }
+
+        String xml = "";
+        try {
+            //含有特殊字符&#时,后续操作会报异常
+            xml = driver.getPageSource().replace("&#","").replace("UTF-8","gbk");
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("Fail to get PageSource");
+        }
+        return xml;
+    }
 
 }

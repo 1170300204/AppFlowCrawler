@@ -9,10 +9,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class ConfigUtil {
 
@@ -23,6 +21,11 @@ public class ConfigUtil {
     private static String udid;
 
     private static Map<String, Object> items;
+
+    public static final String outputDir = System.getProperty("user.dir") + File.separator + "output" + File.separator;
+    public static String appDir;
+    public static String screenshotDir;
+    public static String pcapDir;
 
     //default config items
     public static final String APPIUM_SERVER_IP = "APPIUM_SERVER_IP";
@@ -157,6 +160,11 @@ public class ConfigUtil {
             androidExcludeType = getListValue(ANDROID_EXCLUDE_TYPE);
             nodeNameExcludeList = getListValue(NODE_NAME_EXCLUDE_LIST);
             structureNodeNameExcludeList = getListValue(STRUCTURE_NODE_NAME_EXCLUDE_LIST);
+
+            appDir = outputDir + packageName + "-" + getDatetime() + File.separator;
+            screenshotDir = appDir + "screenshots" + File.separator;
+            pcapDir = appDir + "pcaps" + File.separator;
+
 
         } catch (FileNotFoundException e) {
             log.error("Fail to load config file");
@@ -424,4 +432,26 @@ public class ConfigUtil {
     public static void setStructureNodeNameExcludeList(ArrayList<String> structureNodeNameExcludeList) {
         ConfigUtil.structureNodeNameExcludeList = structureNodeNameExcludeList;
     }
+
+    public static String getOutputDir() {
+        return outputDir;
+    }
+
+    public static String getAppDir() {
+        return appDir;
+    }
+
+    public static String getScreenshotDir() {
+        return screenshotDir;
+    }
+
+    public static String getPcapDir() {
+        return pcapDir;
+    }
+
+    public static String getDatetime() {
+        SimpleDateFormat date = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+        return date.format(new Date());
+    }
+
 }

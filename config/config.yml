@@ -4,6 +4,8 @@ CRITICAL_ELEMENT:
   MAIN_ACTIVITY: com.youdao.calculator.activities.MainActivity
   #通过xpath过滤出要点击的元素， 注意值两侧要加单引号''
   ANDROID_CLICK_XPATH_HEADER: ' ( string-length(@text)<30  or contains(@text,"允许") ) '
+  #若App顶、底含有TabBar, 需指定TabBar的id, 若无TabBar注释下行。 多个id时用or拼接: 如'@resource-id="id1" or @resource-id="id2"'
+  #ANDROID_TAB_BAR_ID: '@resource-id="android:id/tabs"'
 
 # 全局配置
 GENERAL:

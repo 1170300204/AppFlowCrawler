@@ -9,20 +9,21 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class ConfigUtil {
 
     public static Logger log = LoggerFactory.getLogger(ConfigUtil.class);
 
-    private static ConfigUtil configUtil;
-
     private static String udid;
 
     private static Map<String, Object> items;
+
+    public static final String outputDir = System.getProperty("user.dir") + File.separator + "output" + File.separator;
+    public static String appDir;
+    public static String screenshotDir;
+    public static String pcapDir;
 
     //default config items
     public static final String APPIUM_SERVER_IP = "APPIUM_SERVER_IP";
@@ -35,10 +36,12 @@ public class ConfigUtil {
     public static String PACKAGE_NAME = "PACKAGE_NAME";
     public static String MAIN_ACTIVITY = "MAIN_ACTIVITY";
     public static String ANDROID_CLICK_XPATH_HEADER = "ANDROID_CLICK_XPATH_HEADER";
+    public static String ANDROID_TAB_BAR_ID = "ANDROID_TAB_BAR_ID";
 
     private static String packageName;
     private static String mainActivity;
     private static String androidClickXpathHeader;
+    private static String androidTabBarId;
 
     //General config items
     public static final String ENABLE_SCREEN_SHOT = "ENABLE_SCREEN_SHOT";
@@ -95,7 +98,7 @@ public class ConfigUtil {
     private static ArrayList<String> structureNodeNameExcludeList;
 
 
-    public static ConfigUtil initialize(String file, String udid) {
+    public static void initialize(String file, String udid) {
         log.info("Initialize Configuration");
 
         setUdid(udid);
@@ -106,7 +109,6 @@ public class ConfigUtil {
 
             InputStream inputStream = new FileInputStream(file);
             Yaml yaml = new Yaml();
-            configUtil = new ConfigUtil();
             Map<String, Object> temp = yaml.load(inputStream);
             ArrayList<String> keys = new ArrayList<>(Arrays.asList("GENERAL", "DEFAULT_VALUE", "LIST", "CRITICAL_ELEMENT", udid));
             if (temp.get(udid) != null) {
@@ -128,6 +130,7 @@ public class ConfigUtil {
             packageName = getStringValue(PACKAGE_NAME);
             mainActivity = getStringValue(MAIN_ACTIVITY);
             androidClickXpathHeader = getStringValue(ANDROID_CLICK_XPATH_HEADER);
+            androidTabBarId = getStringValue(ANDROID_TAB_BAR_ID);
 
             isEnableScreenShot = getBooleanValue(ENABLE_SCREEN_SHOT, true);
             if (isEnableScreenShot) {
@@ -158,11 +161,15 @@ public class ConfigUtil {
             nodeNameExcludeList = getListValue(NODE_NAME_EXCLUDE_LIST);
             structureNodeNameExcludeList = getListValue(STRUCTURE_NODE_NAME_EXCLUDE_LIST);
 
+            appDir = outputDir + packageName + "-" + getDatetime() + File.separator;
+            screenshotDir = appDir + "screenshots" + File.separator;
+            pcapDir = appDir + "pcaps" + File.separator;
+
+
         } catch (FileNotFoundException e) {
             log.error("Fail to load config file");
             e.printStackTrace();
         }
-        return configUtil;
     }
 
     public static String getStringValue(String key) {
@@ -231,6 +238,14 @@ public class ConfigUtil {
 
     public static void setAndroidClickXpathHeader(String androidClickXpathHeader) {
         ConfigUtil.androidClickXpathHeader = androidClickXpathHeader;
+    }
+
+    public static String getAndroidTabBarId() {
+        return androidTabBarId;
+    }
+
+    public static void setAndroidTabBarId(String androidBottomTabBarId) {
+        ConfigUtil.androidTabBarId = androidBottomTabBarId;
     }
 
     public static boolean getIsEnableScreenShot() {
@@ -424,4 +439,26 @@ public class ConfigUtil {
     public static void setStructureNodeNameExcludeList(ArrayList<String> structureNodeNameExcludeList) {
         ConfigUtil.structureNodeNameExcludeList = structureNodeNameExcludeList;
     }
+
+    public static String getOutputDir() {
+        return outputDir;
+    }
+
+    public static String getAppDir() {
+        return appDir;
+    }
+
+    public static String getScreenshotDir() {
+        return screenshotDir;
+    }
+
+    public static String getPcapDir() {
+        return pcapDir;
+    }
+
+    public static String getDatetime() {
+        SimpleDateFormat date = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");
+        return date.format(new Date());
+    }
+
 }

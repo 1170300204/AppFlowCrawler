@@ -2,11 +2,16 @@ package utils;
 
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.android.AndroidDriver;
+import io.appium.java_client.android.nativekey.AndroidKey;
+import io.appium.java_client.android.nativekey.KeyEvent;
 import io.appium.java_client.remote.MobileCapabilityType;
+import org.apache.commons.io.FileUtils;
+import org.openqa.selenium.OutputType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.net.URL;
 
 public final class DriverUtil {
@@ -77,6 +82,19 @@ public final class DriverUtil {
         return xml;
     }
 
+    public static String getCurrentActivity() {
+        String currentActivity;
+        try {
+            currentActivity = ((AndroidDriver) driver).currentActivity();
+            return currentActivity;
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("Fail to get Current Activity");
+            currentActivity = "android";
+        }
+        return currentActivity;
+    }
+
     public static int getScreenScale() {
         return scale;
     }
@@ -89,8 +107,78 @@ public final class DriverUtil {
         return deviceWidth;
     }
 
-    public static AppiumDriver getDriver() {
-        return driver;
+    public static void takeScreenShot() {
+        sleep(1);
+
+        File screenshot;
+        try {
+            log.info("Taking ScreenShot ... ");
+            screenshot = driver.getScreenshotAs(OutputType.FILE);
+            FileUtils.copyFile(screenshot, new File(ConfigUtil.getScreenshotDir() + File.separator + ConfigUtil.getDatetime() + ".png"));
+
+            if (!ConfigUtil.getIsEnableDeleteScreen())
+                return;
+            File screenshotDir = new File(ConfigUtil.getScreenshotDir());
+            File[] files = screenshotDir.listFiles();
+            if (files != null && files.length > ConfigUtil.getScreenShotCount()) {
+                File deleteFile = files[0];
+                for (File file : files) {
+                    if (file.getName().compareTo(deleteFile.getName()) < 0) {
+                        deleteFile = file;
+                    }
+                }
+                log.info("The number of screenshots exceeds the limit. The oldest screenshots will be deleted : " + deleteFile);
+                log.info("Delete States : " + deleteFile.delete());
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("Fail to take ScreenShot");
+        }
     }
 
+    public static void doBack() {
+        log.info("Do Back");
+
+        pressKeyCode(AndroidKey.BACK);
+
+        sleep(1);
+    }
+
+    public static void pressKeyCode(AndroidKey keycode) {
+        ((AndroidDriver) driver).pressKey(new KeyEvent(keycode));
+    }
+
+    public static boolean isExit(String udid, String packageName) {
+        if (null == packageName) {
+            return false;
+        }
+        packageName = packageName.toLowerCase();
+        boolean exitStatus = true;
+        String res = CommandUtil.executeCmd("adb -s " + udid + " shell ps | findstr " + packageName);
+        if (!res.endsWith(packageName) && !res.contains(packageName + "\n")) {
+            log.error("Get a CRASH : " + packageName);
+            exitStatus = false;
+        }
+        return exitStatus;
+    }
+
+    public static void restartApp() {
+        log.info("Restarting App ...");
+        goHome();
+        try {
+            driver.quit();
+            getAndroidAppiumDriver(ConfigUtil.getPackageName(), ConfigUtil.getMainActivity(), ConfigUtil.getUdid(), ConfigUtil.getPort());
+            sleep(APP_START_WAIT_TIME);
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("Fail to Restart App");
+        }
+
+    }
+
+    public static void goHome() {
+        pressKeyCode(AndroidKey.HOME);
+        sleep(1);
+    }
 }

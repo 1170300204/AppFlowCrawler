@@ -16,6 +16,7 @@ public final class DriverUtil {
     private static int deviceWidth;
     private static final int APP_START_WAIT_TIME = 20;
     private static int screenshotCount = 0;
+    private static final int scale = 1;
 
     public static AppiumDriver getAndroidAppiumDriver(String appPackage, String appActivity, String udid, String port) throws Exception {
         log.info("App Package: " + appPackage);
@@ -35,6 +36,9 @@ public final class DriverUtil {
         String url = "http://" + ConfigUtil.getServerIp() + ":" + port + "/wd/hub";
         log.info("URL: " + url);
         driver = new AndroidDriver(new URL(url), capabilities);
+
+        deviceHeight = driver.manage().window().getSize().getHeight();
+        deviceWidth = driver.manage().window().getSize().getWidth();
 
         return driver;
     }
@@ -71,6 +75,22 @@ public final class DriverUtil {
             log.error("Fail to get PageSource");
         }
         return xml;
+    }
+
+    public static int getScreenScale() {
+        return scale;
+    }
+
+    public static int getDeviceHeight() {
+        return deviceHeight;
+    }
+
+    public static int getDeviceWidth() {
+        return deviceWidth;
+    }
+
+    public static AppiumDriver getDriver() {
+        return driver;
     }
 
 }

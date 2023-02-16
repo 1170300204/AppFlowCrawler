@@ -34,9 +34,11 @@ public class ConfigUtil {
     //Critical element config items
     public static String PACKAGE_NAME = "PACKAGE_NAME";
     public static String MAIN_ACTIVITY = "MAIN_ACTIVITY";
+    public static String ANDROID_CLICK_XPATH_HEADER = "ANDROID_CLICK_XPATH_HEADER";
 
     private static String packageName;
     private static String mainActivity;
+    private static String androidClickXpathHeader;
 
     //General config items
     public static final String ENABLE_SCREEN_SHOT = "ENABLE_SCREEN_SHOT";
@@ -67,6 +69,30 @@ public class ConfigUtil {
     private static long crawlerRunningTime;
     private static long userLoginInterval;
 
+    //List
+    public static final String INPUT_CLASS_LIST = "INPUT_CLASS_LIST";
+    public static final String INPUT_TEXT_LIST = "INPUT_TEXT_LIST";
+    public static final String PRESS_BACK_TEXT_LIST = "PRESS_BACK_TEXT_LIST";
+    public static final String PRESS_BACK_PACKAGE_LIST = "PRESS_BACK_PACKAGE_LIST";
+    public static final String PRESS_BACK_ACTIVITY_LIST = "PRESS_BACK_ACTIVITY_LIST";
+    public static final String ITEM_BLACKLIST = "ITEM_BLACKLIST";
+    public static final String ANDROID_VALID_PACKAGE_LIST = "ANDROID_VALID_PACKAGE_LIST";
+    public static final String ITEM_WHITE_LIST = "ITEM_WHITE_LIST";
+    public static final String ANDROID_EXCLUDE_TYPE = "ANDROID_EXCLUDE_TYPE";
+    public static final String NODE_NAME_EXCLUDE_LIST = "NODE_NAME_EXCLUDE_LIST";
+    public static final String STRUCTURE_NODE_NAME_EXCLUDE_LIST = "STRUCTURE_NODE_NAME_EXCLUDE_LIST";
+
+    private static ArrayList<String> inputClassList;
+    private static ArrayList<String> inputTextList;
+    private static ArrayList<String> pressBackTextList;
+    private static ArrayList<String> pressBackPackageList;
+    private static ArrayList<String> pressBackActivityList;
+    private static ArrayList<String> itemBlackList;
+    private static ArrayList<String> androidValidPackageList;
+    private static ArrayList<String> itemWhiteList;
+    private static ArrayList<String> androidExcludeType;
+    private static ArrayList<String> nodeNameExcludeList;
+    private static ArrayList<String> structureNodeNameExcludeList;
 
 
     public static ConfigUtil initialize(String file, String udid) {
@@ -78,7 +104,7 @@ public class ConfigUtil {
         try {
             log.info("Reading ConfigFile ...");
 
-            InputStream inputStream = new FileInputStream(new File(file));
+            InputStream inputStream = new FileInputStream(file);
             Yaml yaml = new Yaml();
             configUtil = new ConfigUtil();
             Map<String, Object> temp = yaml.load(inputStream);
@@ -101,6 +127,7 @@ public class ConfigUtil {
 
             packageName = getStringValue(PACKAGE_NAME);
             mainActivity = getStringValue(MAIN_ACTIVITY);
+            androidClickXpathHeader = getStringValue(ANDROID_CLICK_XPATH_HEADER);
 
             isEnableScreenShot = getBooleanValue(ENABLE_SCREEN_SHOT, true);
             if (isEnableScreenShot) {
@@ -119,6 +146,17 @@ public class ConfigUtil {
             crawlerRunningTime = getLongValue(CRAWLER_RUNNING_TIME);
             userLoginInterval = getLongValue(USER_LOGIN_INTERVAL);
 
+            inputClassList = getListValue(INPUT_CLASS_LIST);
+            inputTextList = getListValue(INPUT_TEXT_LIST);
+            pressBackTextList = getListValue(PRESS_BACK_TEXT_LIST);
+            pressBackPackageList = getListValue(PRESS_BACK_PACKAGE_LIST);
+            pressBackActivityList = getListValue(PRESS_BACK_ACTIVITY_LIST);
+            itemBlackList = getListValue(ITEM_BLACKLIST);
+            androidValidPackageList = getListValue(ANDROID_VALID_PACKAGE_LIST);
+            itemWhiteList = getListValue(ITEM_WHITE_LIST);
+            androidExcludeType = getListValue(ANDROID_EXCLUDE_TYPE);
+            nodeNameExcludeList = getListValue(NODE_NAME_EXCLUDE_LIST);
+            structureNodeNameExcludeList = getListValue(STRUCTURE_NODE_NAME_EXCLUDE_LIST);
 
         } catch (FileNotFoundException e) {
             log.error("Fail to load config file");
@@ -142,6 +180,10 @@ public class ConfigUtil {
         return value == null ? defaultValue : value;
     }
 
+    public static ArrayList<String> getListValue(String key) {
+        ArrayList<String> list = (ArrayList<String>) items.get(key);
+        return list == null ? new ArrayList<>() : list;
+    }
 
     public static String getUdid() {
         return udid;
@@ -183,7 +225,15 @@ public class ConfigUtil {
         ConfigUtil.mainActivity = mainActivity;
     }
 
-    public static boolean isIsEnableScreenShot() {
+    public static String getAndroidClickXpathHeader() {
+        return androidClickXpathHeader;
+    }
+
+    public static void setAndroidClickXpathHeader(String androidClickXpathHeader) {
+        ConfigUtil.androidClickXpathHeader = androidClickXpathHeader;
+    }
+
+    public static boolean getIsEnableScreenShot() {
         return isEnableScreenShot;
     }
 
@@ -191,7 +241,7 @@ public class ConfigUtil {
         ConfigUtil.isEnableScreenShot = isEnableScreenShot;
     }
 
-    public static boolean isIsGenerateVideo() {
+    public static boolean getIsGenerateVideo() {
         return isGenerateVideo;
     }
 
@@ -207,7 +257,7 @@ public class ConfigUtil {
         ConfigUtil.screenShotCount = screenShotCount;
     }
 
-    public static boolean isIsEnableDeleteScreen() {
+    public static boolean getIsEnableDeleteScreen() {
         return isEnableDeleteScreen;
     }
 
@@ -255,7 +305,7 @@ public class ConfigUtil {
         ConfigUtil.defaultPollingIntervalSec = defaultPollingIntervalSec;
     }
 
-    public static boolean isIsIgnoreCrash() {
+    public static boolean getIsIgnoreCrash() {
         return isIgnoreCrash;
     }
 
@@ -263,7 +313,7 @@ public class ConfigUtil {
         ConfigUtil.isIgnoreCrash = isIgnoreCrash;
     }
 
-    public static boolean isIsEnableVerticalSwipe() {
+    public static boolean getIsEnableVerticalSwipe() {
         return isEnableVerticalSwipe;
     }
 
@@ -285,5 +335,93 @@ public class ConfigUtil {
 
     public static void setUserLoginInterval(long userLoginInterval) {
         ConfigUtil.userLoginInterval = userLoginInterval;
+    }
+
+    public static ArrayList<String> getInputClassList() {
+        return inputClassList;
+    }
+
+    public static void setInputClassList(ArrayList<String> inputClassList) {
+        ConfigUtil.inputClassList = inputClassList;
+    }
+
+    public static ArrayList<String> getInputTextList() {
+        return inputTextList;
+    }
+
+    public static void setInputTextList(ArrayList<String> inputTextList) {
+        ConfigUtil.inputTextList = inputTextList;
+    }
+
+    public static ArrayList<String> getPressBackTextList() {
+        return pressBackTextList;
+    }
+
+    public static void setPressBackTextList(ArrayList<String> pressBackTextList) {
+        ConfigUtil.pressBackTextList = pressBackTextList;
+    }
+
+    public static ArrayList<String> getPressBackPackageList() {
+        return pressBackPackageList;
+    }
+
+    public static void setPressBackPackageList(ArrayList<String> pressBackPackageList) {
+        ConfigUtil.pressBackPackageList = pressBackPackageList;
+    }
+
+    public static ArrayList<String> getPressBackActivityList() {
+        return pressBackActivityList;
+    }
+
+    public static void setPressBackActivityList(ArrayList<String> pressBackActivityList) {
+        ConfigUtil.pressBackActivityList = pressBackActivityList;
+    }
+
+    public static ArrayList<String> getItemBlackList() {
+        return itemBlackList;
+    }
+
+    public static void setItemBlackList(ArrayList<String> itemBlackList) {
+        ConfigUtil.itemBlackList = itemBlackList;
+    }
+
+    public static ArrayList<String> getAndroidValidPackageList() {
+        return androidValidPackageList;
+    }
+
+    public static void setAndroidValidPackageList(ArrayList<String> androidValidPackageList) {
+        ConfigUtil.androidValidPackageList = androidValidPackageList;
+    }
+
+    public static ArrayList<String> getItemWhiteList() {
+        return itemWhiteList;
+    }
+
+    public static void setItemWhiteList(ArrayList<String> itemWhiteList) {
+        ConfigUtil.itemWhiteList = itemWhiteList;
+    }
+
+    public static ArrayList<String> getAndroidExcludeType() {
+        return androidExcludeType;
+    }
+
+    public static void setAndroidExcludeType(ArrayList<String> androidExcludeType) {
+        ConfigUtil.androidExcludeType = androidExcludeType;
+    }
+
+    public static ArrayList<String> getNodeNameExcludeList() {
+        return nodeNameExcludeList;
+    }
+
+    public static void setNodeNameExcludeList(ArrayList<String> nodeNameExcludeList) {
+        ConfigUtil.nodeNameExcludeList = nodeNameExcludeList;
+    }
+
+    public static ArrayList<String> getStructureNodeNameExcludeList() {
+        return structureNodeNameExcludeList;
+    }
+
+    public static void setStructureNodeNameExcludeList(ArrayList<String> structureNodeNameExcludeList) {
+        ConfigUtil.structureNodeNameExcludeList = structureNodeNameExcludeList;
     }
 }

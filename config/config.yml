@@ -58,6 +58,8 @@ LIST:
   INPUT_TEXT_LIST:
     - '123'
     - 'ABC'
+    - 'testWord1'
+    - 'testWord2'
 
   #UI元素中出现下列文字时 触发back键
   PRESS_BACK_TEXT_LIST:

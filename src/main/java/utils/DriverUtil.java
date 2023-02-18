@@ -1,18 +1,31 @@
 package utils;
 
 import io.appium.java_client.AppiumDriver;
+import io.appium.java_client.MobileElement;
+import io.appium.java_client.TouchAction;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.android.nativekey.AndroidKey;
 import io.appium.java_client.android.nativekey.KeyEvent;
+import io.appium.java_client.functions.AppiumFunction;
 import io.appium.java_client.remote.MobileCapabilityType;
+import io.appium.java_client.touch.WaitOptions;
+import io.appium.java_client.touch.offset.PointOption;
 import org.apache.commons.io.FileUtils;
+import org.openqa.selenium.By;
+import org.openqa.selenium.Dimension;
 import org.openqa.selenium.OutputType;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.URL;
+import java.sql.Driver;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public final class DriverUtil {
     public static final Logger log = LoggerFactory.getLogger(DriverUtil.class);
@@ -95,6 +108,111 @@ public final class DriverUtil {
         return currentActivity;
     }
 
+    public static MobileElement findElement(By by, int waitSeconds) {
+        log.info(LoggerUtil.getMethodName());
+        AppiumDriverWait wait = AppiumDriverWait.getInstance(driver, waitSeconds);
+
+        AppiumFunction<AppiumDriver, WebElement> waitFunction = var1 -> {
+            WebElement elem = null;
+            try {
+                elem = var1.findElement(by);
+            } catch (Exception e) {
+                log.error("Element : " + by.toString() + " is not founded! Polling again ...");
+            }
+            if (null != elem) {
+                boolean display = elem.isDisplayed();
+                if (!display) {
+                    log.error("Element : " + by.toString() + " is found but not displayed");
+                    elem = null;
+                } else {
+                    log.info("Element " + by.toString() + " is found.");
+                }
+            }
+            return elem;
+        };
+        return (MobileElement) wait.until(waitFunction);
+    }
+
+    public static List<MobileElement> findElements(By by, int waitSeconds) {
+        log.info(LoggerUtil.getMethodName() + by.toString());
+
+        AppiumDriverWait wait = AppiumDriverWait.getInstance(driver, waitSeconds);
+
+        AppiumFunction<AppiumDriver, List<MobileElement>> waitFunction = var1 -> {
+            List<MobileElement> list = new ArrayList<>();
+            try {
+                list = var1.findElements(by);
+            } catch (Exception e) {
+                log.info("Element : " + by + " not found! Polling again ...");
+            }
+            int size = list.size();
+            if (0 == size) {
+                list = null;
+                log.info(by + " List size Zero");
+            } else {
+                log.info(by + " List size : " +size);
+            }
+            return list;
+        };
+        return wait.until(waitFunction);
+    }
+
+    public static List<MobileElement> findElements(By by) {
+        log.info(LoggerUtil.getMethodName());
+        return findElements(by, (int) ConfigUtil.getDefaultWaitSec());
+    }
+
+    public static List<MobileElement> findElemsWithoutException(By by) {
+        log.info(LoggerUtil.getMethodName());
+
+        List<MobileElement> list = null;
+        try {
+            list = findElements(by, (int) ConfigUtil.getDefaultWaitSec());
+        } catch (Exception e) {
+            log.info("Elements " + by.toString() + " not found.");
+        }
+
+        return list;
+    }
+
+    public static MobileElement findElement(By by) {
+        return findElement(by, (int) ConfigUtil.getDefaultWaitSec());
+    }
+
+    public static MobileElement findElementWithoutException(By by) {
+        MobileElement elem = null;
+        try {
+            elem = findElement(by, (int) ConfigUtil.getDefaultWaitSec());
+        } catch (Exception e) {
+            log.info("Element " + by.toString() + " not found.");
+        }
+        return elem;
+    }
+
+    public static MobileElement findElemByIdWithoutException(String id, int second) {
+        log.info(LoggerUtil.getMethodName());
+
+        MobileElement elem = null;
+        try {
+            elem = findElement(By.id(id), second);
+        } catch (Exception e) {
+            log.info("Element " + id + " is not found.");
+        }
+        return elem;
+    }
+
+    public static boolean elemCheckById(String id, int second) {
+        log.info(LoggerUtil.getMethodName());
+
+        boolean ret = false;
+        MobileElement elem = findElemByIdWithoutException(id, second);
+        if (null != elem) {
+            ret = true;
+        }
+        log.info(id + " " + ret);
+        return ret;
+    }
+
     public static int getScreenScale() {
         return scale;
     }
@@ -107,14 +225,18 @@ public final class DriverUtil {
         return deviceWidth;
     }
 
-    public static void takeScreenShot() {
+    public static void takeScreenShot(String name) {
         sleep(1);
 
         File screenshot;
         try {
             log.info("Taking ScreenShot ... ");
             screenshot = driver.getScreenshotAs(OutputType.FILE);
-            FileUtils.copyFile(screenshot, new File(ConfigUtil.getScreenshotDir() + File.separator + ConfigUtil.getDatetime() + ".png"));
+            if (null == name) {
+                FileUtils.copyFile(screenshot, new File(ConfigUtil.getScreenshotDir() + File.separator + ConfigUtil.getDatetime() + ".png"));
+            } else {
+                FileUtils.copyFile(screenshot, new File(ConfigUtil.getScreenshotDir() + File.separator + ConfigUtil.getDatetime() + "_" + name + ".png"));
+            }
 
             if (!ConfigUtil.getIsEnableDeleteScreen())
                 return;
@@ -135,6 +257,10 @@ public final class DriverUtil {
             e.printStackTrace();
             log.error("Fail to take ScreenShot");
         }
+    }
+
+    public static void takeScreenShot() {
+        takeScreenShot(null);
     }
 
     public static void doBack() {
@@ -181,4 +307,54 @@ public final class DriverUtil {
         pressKeyCode(AndroidKey.HOME);
         sleep(1);
     }
+
+    public static int internalNextInt(int origin, int bound) {
+        Random random = new Random();
+
+        if (origin < bound) {
+            int n = bound - origin;
+            if (n > 0) {
+                return random.nextInt(n) + origin;
+            } else {  // range not representable as int
+                int r;
+                do {
+                    r = random.nextInt();
+                } while (r < origin || r > bound);
+                return r;
+            }
+        } else {
+            //return random.nextInt();
+            log.info("!!!!origin>=bound");
+            return bound - origin;
+        }
+    }
+
+    public static void swipe(int startX, int startY, int endX, int endY) {
+        log.info("scroll from : startX " + startX + ", startY " + startY + ", to  endX " + endX + ",endY " + endY);
+
+        try {
+            TouchAction touchAction = new TouchAction(driver);
+            PointOption pointStart = PointOption.point(startX, startY);
+            PointOption pointEnd = PointOption.point(endX, endY);
+
+            WaitOptions waitOption = WaitOptions.waitOptions(Duration.ofMillis(1000));
+            touchAction.press(pointStart).waitAction(waitOption).moveTo(pointEnd).release().perform();
+        } catch (Exception e) {
+            log.error("Fail to scroll from : startX " + startX + ", startY " + startY + ", to  endX " + endX + ",endY " + endY);
+            e.printStackTrace();
+        }
+    }
+
+    public static void verticallySwipe(boolean scrollDown) {
+        log.info(LoggerUtil.getMethodName());
+        Dimension dimension = driver.manage().window().getSize();
+        //在屏幕中央垂直滑动屏幕高度一半的距离
+        int height = dimension.getHeight();
+        int width = dimension.getWidth();
+        if (scrollDown)
+            swipe(dimension.getWidth() / 2, dimension.getWidth() / 2, dimension.getHeight() / 2, dimension.getHeight() - 50);
+        else
+            swipe(dimension.getWidth() / 2, dimension.getWidth() / 2, dimension.getHeight() / 2, 50);
+    }
+
 }

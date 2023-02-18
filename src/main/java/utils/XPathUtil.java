@@ -1,6 +1,9 @@
 package utils;
 
 import enums.PackageStatus;
+import io.appium.java_client.MobileElement;
+import jdk.nashorn.internal.runtime.regexp.joni.constants.Traverse;
+import org.openqa.selenium.By;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -18,6 +21,9 @@ public class XPathUtil {
     public static XPath xPath = XPathFactory.newInstance().newXPath();
     private static final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
     private static DocumentBuilder documentBuilder;
+    private static final Map<String, Long> clickedActivityMap = new HashMap<>();
+    private static final HashMap<String, HashSet<String>> clickedElementMap = new LinkedHashMap<>();
+    private static final HashSet<String> mark = new LinkedHashSet<>();
 
     private static boolean runningStates = true;
 
@@ -44,7 +50,7 @@ public class XPathUtil {
     private static int scale;
     private static boolean ignoreCrash;
     private static boolean removedBounds = false;
-    private static final boolean swipeVertical = ConfigUtil.getIsEnableVerticalSwipe();
+    private static final boolean verticalSwipe = ConfigUtil.getIsEnableVerticalSwipe();
     private static long userLoginInterval;
     private static long userLoginCount = 0;
 
@@ -162,7 +168,7 @@ public class XPathUtil {
         int length = nodes.getLength();
         log.info("UI nodes length: " + length);
 
-        String previousPageStructure = XPathUtil.getPageStructure(xml, clickXpath);
+        String previousPageStructure = getPageStructure(xml, clickXpath);
         String afterPageStructure = previousPageStructure;
         String currentXml = xml;
         if(!runningStates) {
@@ -230,23 +236,147 @@ public class XPathUtil {
 
         //遍历UI中的Node
         while (--length >= 0 && runningStates) {
-            log.info("Element #" + length);
+            log.info("Element #" + length + "------------------------");
+            Node node = nodes.item(length);
+            String nodeXpath = getNodeXpath(node, false);
 
+            if (null == nodeXpath) {
+                log.info("Node Xpath NULL, Skipping");
+                continue;
+            }
+            if (blackNodeXpathSize != 0 && nodeXpathBlackSet.contains(nodeXpath)) {
+                log.info("Trigger BlackList Xpath Item : " + nodeXpath + ", Skipping ...");
+                continue;
+            }
 
+            //判断当前元素是否被点击过, 并记录
+            if (mark.add(nodeXpath)) {
+                for (String item : nodeWhiteList) {
+                    if (nodeXpath.contains(item.trim())) {
+                        log.info("Node in WhiteList, Not Limited by the number of Clicks");
+                        mark.remove(nodeXpath);
+                    }
+                }
 
+                MobileElement element = DriverUtil.findElementWithoutException(By.xpath(nodeXpath));
+                //元素未找到则重新遍历当前页面
+                if (null == element) {
+                    xpathNotFoundElementList.add(nodeXpath);
+                    log.info("Node not Found in Current UI. Stopping Current iteration ...");
+                    break;
+                }
+                currentXml = clickElement(element, currentXml);
+                afterPageStructure = getPageStructure(currentXml,clickXpath);
+                //发生了页面变化, 检查完毕后进入更深一层的递归
+                if (!isSamePage(previousPageStructure, afterPageStructure) && runningStates) {
+                    log.info("======== New Page UI ========");
+                    packageName = getAppName(currentXml);
+                    if (PackageStatus.VALID != getPackageStatus(packageName, true)) {
+                        currentXml = DriverUtil.getPageSource();
+                        afterPageStructure = getPageStructure(currentXml, clickXpath);
+                        break;
+                    }
+                    //进入子UI遍历
+                    dfsCrawl(currentXml, currentDepth);
 
+                    //从子UI返回
+                    if (!runningStates) {
+                        break;
+                    }
+                    currentXml = DriverUtil.getPageSource();
+                    packageName = getAppName(currentXml);
+                    if (PackageStatus.VALID != getPackageStatus(packageName, false)) {
+                        break;
+                    }
+                    afterPageStructure = getPageStructure(currentXml,clickXpath);
 
-
+                    if (isSamePage(previousPageStructure, afterPageStructure)) {
+                        log.info("Page Not Change after Recursive return");
+                    } else {
+                        log.info("Page Change after Recursive return, Stop Traversing Current Page");
+                        break;
+                    }
+                }
+            } else {
+                log.info("The Element has been Clicked : " + nodeXpath + "\n");
+            }
         }
 
+        log.info("\n\n======== DONE. RunningStates : " + runningStates + " ========\n\n");
 
+        if (!runningStates) {
+            log.info("Current Package Name Changed : " + packageName + ". RunningStates is False, Returning ...");
+        }
 
+        log.info(length + " nodes left");
+        boolean isDoBack = true;
+        //此时完了所有的页面元素并且UI也未发生变化, 结束该深度的遍历, 回退到上一层
+        if (length < 0 && isSamePage(previousPageStructure, afterPageStructure)) {
+            //如果允许滑动操作, 则需要观察滑动之后页面是否发生了变化, 如果发生了变化说明这一层的遍历还没有进行完全
+            if (verticalSwipe) {
+                log.info("Check : Enable Vertically Swipe");
+                DriverUtil.verticallySwipe(false);
+                currentXml = DriverUtil.getPageSource();
 
+                previousPageStructure = afterPageStructure;
+                afterPageStructure = getPageStructure(currentXml, clickXpath);
+                if (!isSamePage(previousPageStructure, afterPageStructure)) {
+                    log.info("Page Change after Vertically swipe, Continue Current Depth Traverse ...");
+                    isDoBack = false;
+                    currentXml = dfsCrawl(currentXml, currentDepth);
+                } else {
+                    log.info("No Page Change after Vertically swipe");
+                }
+            }
+            log.info("All Nodes in Current Page iterated");
 
+            if (isDoBack) {
+                if (null != backKeyXpath) {
+                    log.info("Getting Back Key ...");
+                    MobileElement element = DriverUtil.findElementWithoutException(By.xpath(backKeyXpath));
+                    if (null != element) {
+                        log.info("Back Key found, Doing Back ...");
+                        currentXml = clickElement(element, currentXml);
+                        return currentXml;
+                    } else {
+                        log.info("No Back Key found");
+                    }
+                }
 
-        //TODO
+                //检查当前页面是否含有tab bar
+                currentXml = clickTapBarElement(currentXml, tabBarXpath);
+                if (null != currentXml) {
+                    log.info("Tab Bar Change, Continue Traversing");
+                    dfsCrawl(currentXml, currentDepth);
+                } else {
+                    DriverUtil.doBack();
+                    DriverUtil.takeScreenShot();
 
-        return "";
+                    currentXml = DriverUtil.getPageSource();
+                    packageName = getAppName(currentXml);
+
+                    if (pressBackCount <= 0) {
+                        log.info("Do Back Count Zero, Stop Crawling ...");
+                        runningStates = false;
+                    }
+                    if (pressBackCount > 0 && PackageStatus.VALID != getPackageStatus(packageName, false)) {
+                        log.info("Do Back Count not Zero(" + pressBackCount + ") and Package Status not Valid, Restarting app ...");
+                        DriverUtil.restartApp();
+                        pressBackCount--;
+                        currentXml = DriverUtil.getPageSource();
+                        dfsCrawl(currentXml, currentDepth);
+                    }
+                }
+            }
+        } else {
+            //仍未完成遍历或页面发生了变化，继续当前页面的遍历
+            log.info("UI Change. Continue Current Depth(" + currentDepth + ") Traverse ...");
+            currentXml = DriverUtil.getPageSource();
+            dfsCrawl(currentXml, currentDepth);
+        }
+
+        log.info("================ Complete current UI Traverse. Depth before return is " + currentDepth +" ================");
+        return currentXml;
     }
 
     public static Set<String> getBlackXpathSet(List<String> list) {
@@ -302,6 +432,19 @@ public class XPathUtil {
             }
         }
         return pageStrcture.toString();
+    }
+
+    public static boolean isSamePage(String page1, String page2) {
+        if (null == page1 || null ==page2) {
+            log.error(LoggerUtil.getMethodName() + " : Null Page Compare");
+            return false;
+        }
+        boolean res = page1.equals(page2);
+        if (!res && runningStates) {
+            DriverUtil.takeScreenShot();
+            log.info("Page Change : From " + page1 + " To " + page2);
+        }
+        return res;
     }
 
     public static String getNodeXpath(Node node, boolean structureOnly) {
@@ -453,6 +596,115 @@ public class XPathUtil {
                 continue;
             log.info("Found Tab : " + nodeXpath);
         }
+    }
+
+    public static String clickElement(MobileElement element, String xml) {
+        log.info(LoggerUtil.getMethodName());
+        String page;
+
+        try {
+            String activityName = DriverUtil.getCurrentActivity();
+            Long clickCount = clickedActivityMap.get(activityName);
+            if (null == clickCount) {
+                clickCount = 1L;
+            } else {
+                clickCount++;
+            }
+            clickedActivityMap.put(activityName, clickCount);
+            log.info("Click Map Update : " + activityName + " - " + clickCount);
+
+            String tag = element.getText();
+            if (!Objects.equals(tag, "")) {
+                HashSet<String> clickedElementSet = clickedElementMap.get(activityName);
+                if (null != clickedElementSet) {
+                    clickedElementSet.add(tag);
+                } else {
+                    clickedElementMap.put(activityName, new HashSet<>(Collections.singleton(tag)));
+                }
+            }
+            int x = element.getCenter().getX();
+            int y = element.getCenter().getY();
+            DriverUtil.takeScreenShot(activityName);
+            element.click();
+            log.info("Click " + clickCount + "th, X: "  + x + " Y: " + y);
+
+            DriverUtil.sleep(3);
+            page = DriverUtil.getPageSource();
+            PackageStatus status = getPackageStatus(appName, false);
+
+            if (PackageStatus.VALID != status) {
+                page = DriverUtil.getPageSource();
+            }
+            if (clickCount >= ConfigUtil.getMaxClickCount()) {
+                runningStates = false;
+            }
+
+            String temp = "";
+
+            try {
+                String elementStr = element.toString();
+                List<String> inputClassList = ConfigUtil.getInputClassList();
+                List<String> inputTextList = ConfigUtil.getInputTextList();
+                int classSize = inputTextList.size();
+                for (String elementClass : inputClassList) {
+                    temp = elementClass;
+                    if (elementStr.contains(elementClass)) {
+                        String text = inputTextList.get(DriverUtil.internalNextInt(0, classSize));
+                        element.setValue(text);
+                        log.info("Element " + temp + " set Text : " + text);
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                log.error("Fail to set Text for " + temp);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("Fail to Click Element : " + element);
+            clickFailureElementList.add(element.toString());
+            page = DriverUtil.getPageSource();
+        }
+        return page;
+    }
+
+    public static String clickTapBarElement(String xml, String tabBarXpath) throws Exception {
+        log.info(LoggerUtil.getMethodName());
+        if (tabBarXpath == null)    return null;
+
+        String ret = null;
+        log.info("Current Tab Bar Xpath : " + tabBarXpath);
+
+        Document document = documentBuilder.parse(new ByteArrayInputStream(xml.getBytes()));
+        NodeList nodes = (NodeList) xPath.evaluate(tabBarXpath, document, XPathConstants.NODESET);
+
+        int length = nodes.getLength();
+        log.info("TarBar Nodes Length : " + length);
+        if (length == 0) {
+            log.info("No Tab Bar Element Found");
+            return null;
+        }
+
+        while (--length >= 0) {
+            Node temp = nodes.item(length);
+            String nodeXpath = getNodeXpath(temp, false);
+            if (nodeXpath == null)  continue;
+            if (mark.add(nodeXpath)) {
+                MobileElement element = DriverUtil.findElementWithoutException(By.xpath(nodeXpath));
+                if (null == element) {
+                    log.info("Tab Bar Element : " + nodeXpath + " Not Found. Breaking ...");
+                    break;
+                }
+                log.info("Tab Bar Element : " + nodeXpath + " Found. Clicking ...");
+                ret = clickElement(element, xml);
+                DriverUtil.takeScreenShot("tab" + length);
+                break;
+            }
+        }
+        if (length == 0) {
+            log.info("All Tab Bar Elements iterated");
+        }
+        return ret;
     }
 
 }

@@ -1,11 +1,13 @@
 CRITICAL_ELEMENT:
   #Android App测试时，需指定App包名和启动的Activity
-  PACKAGE_NAME: com.youdao.calculator
-  MAIN_ACTIVITY: com.youdao.calculator.activities.MainActivity
+#  PACKAGE_NAME: com.youdao.calculator
+#  MAIN_ACTIVITY: com.youdao.calculator.activities.MainActivity
+  PACKAGE_NAME: com.vkontakte.android
+  MAIN_ACTIVITY: com.vkontakte.android.MainActivity
   #通过xpath过滤出要点击的元素， 注意值两侧要加单引号''
   ANDROID_CLICK_XPATH_HEADER: ' ( string-length(@text)<30  or contains(@text,"允许") ) '
   #若App顶、底含有TabBar, 需指定TabBar的id, 若无TabBar注释下行。 多个id时用or拼接: 如'@resource-id="id1" or @resource-id="id2"'
-  #ANDROID_TAB_BAR_ID: '@resource-id="android:id/tabs"'
+  ANDROID_TAB_BAR_ID: '@resource-id="com.vkontakte.android:id/tab_news" or @resource-id="com.vkontakte.android:id/tab_discover" or @resource-id="com.vkontakte.android:id/tab_messages" or @resource-id="com.vkontakte.android:id/tab_feedback" or @resource-id="com.vkontakte.android:id/tab_menu"'
 
 # 全局配置
 GENERAL:
@@ -20,7 +22,7 @@ GENERAL:
   #Crash时截图显示步骤数量
   CRASH_PIC_COUNT: 10
   #遍历深度
-  MAX_DEPTH: 10
+  MAX_DEPTH: 20
   #点击次数
   MAX_CLICK_COUNT: 1000000
   #查找元素的时间
@@ -64,6 +66,12 @@ LIST:
   #UI元素中出现下列文字时 触发back键
   PRESS_BACK_TEXT_LIST:
     - 返回
+    - cancel
+    - settings
+#    - <
+#    - ←
+#    - back
+
 
   #当pp跳转到以下app时 触发back键
   PRESS_BACK_PACKAGE_LIST:
@@ -90,6 +98,7 @@ LIST:
     - 呼叫
     - 低电量模式
     - 关闭
+    - Log out
     - '//*[@text="去付款"]'
     - '//*[@text="vConsole"]'
     - '//*[@resource-id="__vconsole"]'

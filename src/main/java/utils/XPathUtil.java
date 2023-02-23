@@ -172,7 +172,7 @@ public class XPathUtil {
         String afterPageStructure = previousPageStructure;
         String currentXml = xml;
         if(!runningStates) {
-            log.info("Running States Change. Ending the Task");
+            log.info("Running States Change. Ending the Task ...");
             return currentXml;
         }
 
@@ -212,14 +212,22 @@ public class XPathUtil {
         if (PackageStatus.VALID != getPackageStatus(packageName, true)) {
             log.info("Invalid Package : " + packageName + ", Skipping");
             currentXml = DriverUtil.getPageSource();
+            //TODO
+            DriverUtil.doBack();
+//            DriverUtil.doBackUntilSame(previousPageStructure, enterPageStructure);
             return currentXml;
         }
         currentDepth++;
         log.info("Current Depth : " + currentDepth);
         if (currentDepth > maxDepth) {
-            runningStates = false;
+//            runningStates = false;
             log.info("Max Traversal Depth Exceeded [" + currentDepth + " > " + maxDepth + " ], Returning ...");
             currentXml = DriverUtil.getPageSource();
+            //TODO
+            DriverUtil.doBack();
+//            if (isSamePage(previousPageStructure, enterPageStructure)){
+//                DriverUtil.doBack();
+//            }
             return currentXml;
         }
         log.info("NodeList Length : " + length);
@@ -236,8 +244,10 @@ public class XPathUtil {
 
         //遍历UI中的Node
         while (--length >= 0 && runningStates) {
-            log.info("Element #" + length + "------------------------");
-            Node node = nodes.item(length);
+            int nodeIndex = nodes.getLength()-length-1;
+            log.info("Element #" + nodeIndex + "------------------------");
+//            Node node = nodes.item(length);
+            Node node = nodes.item(nodeIndex);
             String nodeXpath = getNodeXpath(node, false);
 
             if (null == nodeXpath) {
@@ -273,6 +283,7 @@ public class XPathUtil {
                     packageName = getAppName(currentXml);
                     if (PackageStatus.VALID != getPackageStatus(packageName, true)) {
                         currentXml = DriverUtil.getPageSource();
+                        //
                         afterPageStructure = getPageStructure(currentXml, clickXpath);
                         break;
                     }
@@ -306,6 +317,7 @@ public class XPathUtil {
 
         if (!runningStates) {
             log.info("Current Package Name Changed : " + packageName + ". RunningStates is False, Returning ...");
+            return currentXml;
         }
 
         log.info(length + " nodes left");
@@ -376,6 +388,8 @@ public class XPathUtil {
         }
 
         log.info("================ Complete current UI Traverse. Depth before return is " + currentDepth +" ================");
+        //TODO
+        DriverUtil.doBack();
         return currentXml;
     }
 
@@ -435,6 +449,7 @@ public class XPathUtil {
     }
 
     public static boolean isSamePage(String page1, String page2) {
+        //TODO
         if (null == page1 || null ==page2) {
             log.error(LoggerUtil.getMethodName() + " : Null Page Compare");
             return false;
@@ -624,9 +639,10 @@ public class XPathUtil {
             }
             int x = element.getCenter().getX();
             int y = element.getCenter().getY();
-            DriverUtil.takeScreenShot(activityName);
+
             element.click();
-            log.info("Click " + clickCount + "th, X: "  + x + " Y: " + y);
+            DriverUtil.takeScreenShot(activityName);
+            log.info("Click " + clickCount + "th, X: "  + x + " ,Y: " + y);
 
             DriverUtil.sleep(3);
             page = DriverUtil.getPageSource();

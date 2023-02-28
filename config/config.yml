@@ -5,7 +5,7 @@ CRITICAL_ELEMENT:
   PACKAGE_NAME: com.vkontakte.android
   MAIN_ACTIVITY: com.vkontakte.android.MainActivity
   #通过xpath过滤出要点击的元素， 注意值两侧要加单引号''
-  ANDROID_CLICK_XPATH_HEADER: ' ( string-length(@text)<30  or contains(@text,"允许") ) '
+  ANDROID_CLICK_XPATH_HEADER: ' ( ( string-length(@text)<30 and contains(@clickable,"true") )  or contains(@text,"允许") ) '
   #若App顶、底含有TabBar, 需指定TabBar的id, 若无TabBar注释下行。 多个id时用or拼接: 如'@resource-id="id1" or @resource-id="id2"'
   ANDROID_TAB_BAR_ID: '@resource-id="com.vkontakte.android:id/tab_news" or @resource-id="com.vkontakte.android:id/tab_discover" or @resource-id="com.vkontakte.android:id/tab_messages" or @resource-id="com.vkontakte.android:id/tab_feedback" or @resource-id="com.vkontakte.android:id/tab_menu"'
 
@@ -52,16 +52,23 @@ LIST:
 
   #待输入文本的控制类型
   INPUT_CLASS_LIST:
-    - android.widget.TextView
+#    - android.widget.TextView
+    - android.widget.EditText
     - XCUIElementTypeTextField
     - XCUIElementTypeSecureTextField
 
   #待输入的文本（随机选中后选列表中的一个）
   INPUT_TEXT_LIST:
-    - '123'
-    - 'ABC'
-    - 'testWord1'
-    - 'testWord2'
+    - 'Hello ~'
+    - 'Hi ~'
+    - 'Hola ~'
+    - 'Bonjour ~'
+    - 'Guten morgen'
+    - 'Buon Giorno'
+    - 'Goedemorgen'
+    - 'Giorno'
+    - 'Guten Tag'
+    - 'Allo'
 
   #UI元素中出现下列文字时 触发back键
   PRESS_BACK_TEXT_LIST:

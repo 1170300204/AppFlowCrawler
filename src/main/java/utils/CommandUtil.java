@@ -1,9 +1,11 @@
 package utils;
 
+import io.appium.java_client.android.nativekey.AndroidKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Arrays;
 
@@ -66,5 +68,14 @@ public class CommandUtil {
 
         return executeCmd(cmd, show);
     }
+
+    public static void startTcpdump() {
+
+    }
+
+    public static void endTcpdump() {
+
+    }
+
 
 }

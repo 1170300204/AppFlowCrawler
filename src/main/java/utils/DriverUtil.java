@@ -19,7 +19,12 @@ import org.openqa.selenium.remote.DesiredCapabilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.URL;
 import java.sql.Driver;
 import java.time.Duration;
@@ -35,6 +40,7 @@ public final class DriverUtil {
     private static final int APP_START_WAIT_TIME = 20;
     private static int screenshotCount = 0;
     private static final int scale = 1;
+    private static final int DEFAULT_PICTURE_POINT_RADIUS = 20;
 
     public static AppiumDriver getAndroidAppiumDriver(String appPackage, String appActivity, String udid, String port) throws Exception {
         log.info("App Package: " + appPackage);
@@ -225,13 +231,43 @@ public final class DriverUtil {
         return deviceWidth;
     }
 
-    public static void takeScreenShot(String name) {
+    public static void takeScreenShot(String name, int x, int y, int radius) {
         sleep(1);
 
         File screenshot;
         try {
             log.info("Taking ScreenShot ... ");
             screenshot = driver.getScreenshotAs(OutputType.FILE);
+
+            if (x >= 0 && y >= 0 && radius > 0) {
+                FileOutputStream fileOutputStream = null;
+                try {
+                    BufferedImage image = ImageIO.read(screenshot);
+                    Graphics2D g2d = image.createGraphics();
+                    AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.7f);
+                    g2d.setComposite(ac);
+                    int rb = 2 * radius;
+                    g2d.setColor(Color.BLACK);
+                    g2d.fillOval(x - radius, y - radius, 2 * radius, 2 * radius);
+                    g2d.setColor(Color.RED);
+                    g2d.fillOval(x - rb, y - rb, 2 * rb, 2 * rb);            //填充一个椭圆形
+                    fileOutputStream = new FileOutputStream(screenshot);
+                    ImageIO.write(image, "png", fileOutputStream);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    log.error("Fail to take ScreenShot With Point");
+                } finally {
+                    if (fileOutputStream!=null) {
+                        try {
+                            fileOutputStream.close();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            log.error("Fail to close Picture " + screenshot.getName());
+                        }
+                    }
+                }
+            }
+
             if (null == name) {
                 FileUtils.copyFile(screenshot, new File(ConfigUtil.getScreenshotDir() + File.separator + ConfigUtil.getDatetime() + ".png"));
             } else {
@@ -260,7 +296,19 @@ public final class DriverUtil {
     }
 
     public static void takeScreenShot() {
-        takeScreenShot(null);
+        takeScreenShot(null, -1, -1, -1);
+    }
+
+    public static void takeScreenShot(String name) {
+        takeScreenShot(name, -1, -1 ,-1);
+    }
+
+    public static void takeScreenShot(int x, int y) {
+        takeScreenShot(null, x, y, DEFAULT_PICTURE_POINT_RADIUS);
+    }
+
+    public static void takeScreenShot(String name, int x, int y) {
+        takeScreenShot(name, x, y, DEFAULT_PICTURE_POINT_RADIUS);
     }
 
     public static void doBack() {
@@ -301,6 +349,13 @@ public final class DriverUtil {
             log.error("Fail to Restart App");
         }
 
+    }
+
+    public static void switchApp() {
+        //连续输入两次APP_SWITCH可以切换到最近的应用程序
+        DriverUtil.pressKeyCode(AndroidKey.APP_SWITCH);
+        DriverUtil.sleep(0.8);
+        DriverUtil.pressKeyCode(AndroidKey.APP_SWITCH);
     }
 
     public static void goHome() {

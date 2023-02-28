@@ -3,6 +3,7 @@ package demo;
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.android.AndroidDriver;
 import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 
@@ -36,7 +37,7 @@ public class AppDemo {
         int width = driver.manage().window().getSize().width;
         int height = driver.manage().window().getSize().height;
         System.out.println("Current window Size: Width " + width + " Height " + height);
-
+        System.out.println(((WebDriver )driver).getTitle());
 //        int x0 = (int)(width * 0.8);  // 起始x坐标
 //        int x1 = (int)(height * 0.2);  // 终止x坐标
 //        int y = (int)(height * 0.5);  // y坐标

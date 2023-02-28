@@ -16,6 +16,14 @@ public class Crawler {
     private AppiumDriver driver;
     private String configFile;
 
+    private static class ShutDownHandler extends Thread {
+        @Override
+        public void run() {
+            log.info("Shutting down ...");
+            XPathUtil.shutDownInfoPrint();
+        }
+    }
+
     public void doCrawl() throws Exception {
 
         beginTime = new Date();
@@ -30,7 +38,11 @@ public class Crawler {
             log.error("Fail to start appium server");
             return;
         }
+
         log.info(driver.toString());
+
+        Runtime.getRuntime().addShutdownHook(new ShutDownHandler());
+
         try {
             //等待app启动完毕
             DriverUtil.sleep(10);
@@ -40,7 +52,7 @@ public class Crawler {
             String pageSource = DriverUtil.getPageSource();
 
             log.info("======== In App UI/Flow Crawler Func (DFS mode) ========");
-            XPathUtil.dfsCrawl(pageSource, 0);
+            XPathUtil.dfsCrawl(pageSource, 0, null);
 
             log.info("==================================");
             log.info("======== Complete running ========");

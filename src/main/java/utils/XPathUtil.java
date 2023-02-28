@@ -24,6 +24,7 @@ public class XPathUtil {
     private static final Map<String, Long> clickedActivityMap = new HashMap<>();
     private static final HashMap<String, HashSet<String>> clickedElementMap = new LinkedHashMap<>();
     private static final HashSet<String> mark = new LinkedHashSet<>();
+    private static final HashMap<String, Long> pageMap = new HashMap<>();
 
     private static boolean runningStates = true;
 
@@ -149,7 +150,7 @@ public class XPathUtil {
         log.info("============================================");
     }
 
-    public static String dfsCrawl(String xml, long currentDepth) throws Exception {
+    public static String dfsCrawl(String xml, long currentDepth, String previousPageStructure) throws Exception {
         //get nodes from page source
         log.info("Method in DFS func. Current depth: " + currentDepth);
 //        log.info("Window Handler: " + DriverUtil.driver.getWindowHandle());
@@ -168,21 +169,41 @@ public class XPathUtil {
         int length = nodes.getLength();
         log.info("UI nodes length: " + length);
 
-        String previousPageStructure = getPageStructure(xml, clickXpath);
-        String afterPageStructure = previousPageStructure;
+        String currentPageStructure = getPageStructure(xml, clickXpath);
+        if (null == previousPageStructure) {
+            previousPageStructure = currentPageStructure;
+        }
+        String afterPageStructure = currentPageStructure;
         String currentXml = xml;
         if(!runningStates) {
             log.info("Running States Change. Ending the Task ...");
             return currentXml;
         }
 
+        //当前的深度增加逻辑有问题，需要在深度增加之前添加判断逻辑
+        //TODO
+//        if (isSamePage(previousPageStructure, currentPageStructure))
+//            currentDepth++;
+        if (!pageMap.containsKey(currentPageStructure)) {
+            pageMap.put(currentPageStructure, currentDepth);
+        } else {
+            //如果经过一番操作又回到了之前初始界面等之前经历过的界面，则需要将当前的深度更新
+            long pageDepth = pageMap.get(currentPageStructure);
+            if (currentDepth < pageDepth) {
+                pageMap.put(currentPageStructure,currentDepth);
+                log.info("Depth update from " + pageDepth + " to " + currentDepth);
+            }
+            log.info("Back to Map Page (Depth:" + currentDepth + ") :\n");
+            log.info(currentPageStructure);
+        }
+
         if (backKeyTriggerList.size() > 0) {
             for (String backKey: backKeyTriggerList) {
                 if (currentXml.contains(backKey)) {
-                    log.info("Trigger Back Key [" + backKey + "], Pressing it ...");
+                    log.info("Trigger Back Key [" + backKey + "], Doing Back ...");
                     if (ConfigUtil.getIsEnableScreenShot())
                         DriverUtil.takeScreenShot();
-                    DriverUtil.doBack();
+                    doBackIfValid(currentPageStructure);
                     currentXml = DriverUtil.getPageSource();
                     return currentXml;
                 }
@@ -195,13 +216,14 @@ public class XPathUtil {
                     log.info("Trigger Back Key Activity [" + backKey + "], Pressing Back Key ...");
                     if (ConfigUtil.getIsEnableScreenShot())
                         DriverUtil.takeScreenShot();
-                    DriverUtil.doBack();
+                    doBackIfValid(currentPageStructure);
                     currentXml = DriverUtil.getPageSource();
                     return currentXml;
                 }
             }
         }
 
+        DriverUtil.takeScreenShot("dep" + currentDepth);
         //遍历前进行一些必要的检查
         String packageName = getAppName(currentXml);
         String currentActivity = DriverUtil.getCurrentActivity();
@@ -212,22 +234,19 @@ public class XPathUtil {
         if (PackageStatus.VALID != getPackageStatus(packageName, true)) {
             log.info("Invalid Package : " + packageName + ", Skipping");
             currentXml = DriverUtil.getPageSource();
-            //TODO
-            DriverUtil.doBack();
-//            DriverUtil.doBackUntilSame(previousPageStructure, enterPageStructure);
+            doBackIfValid(currentPageStructure);
             return currentXml;
         }
-        currentDepth++;
+
         log.info("Current Depth : " + currentDepth);
         if (currentDepth > maxDepth) {
 //            runningStates = false;
             log.info("Max Traversal Depth Exceeded [" + currentDepth + " > " + maxDepth + " ], Returning ...");
             currentXml = DriverUtil.getPageSource();
-            //TODO
-            DriverUtil.doBack();
-//            if (isSamePage(previousPageStructure, enterPageStructure)){
-//                DriverUtil.doBack();
-//            }
+            currentPageStructure = getPageStructure(xml, clickXpath);
+            if (!isSamePage(previousPageStructure, currentPageStructure)) {
+                doBackIfValid(currentPageStructure);
+            }
             return currentXml;
         }
         log.info("NodeList Length : " + length);
@@ -278,7 +297,11 @@ public class XPathUtil {
                 currentXml = clickElement(element, currentXml);
                 afterPageStructure = getPageStructure(currentXml,clickXpath);
                 //发生了页面变化, 检查完毕后进入更深一层的递归
-                if (!isSamePage(previousPageStructure, afterPageStructure) && runningStates) {
+                if (!isSamePage(currentPageStructure, afterPageStructure) && runningStates) {
+                    log.info("======== Page Change From\n");
+                    log.info(currentPageStructure);
+                    log.info("To\n");
+                    log.info(afterPageStructure);
                     log.info("======== New Page UI ========");
                     packageName = getAppName(currentXml);
                     if (PackageStatus.VALID != getPackageStatus(packageName, true)) {
@@ -288,7 +311,7 @@ public class XPathUtil {
                         break;
                     }
                     //进入子UI遍历
-                    dfsCrawl(currentXml, currentDepth);
+                    dfsCrawl(currentXml, currentDepth+1, currentPageStructure);
 
                     //从子UI返回
                     if (!runningStates) {
@@ -301,7 +324,7 @@ public class XPathUtil {
                     }
                     afterPageStructure = getPageStructure(currentXml,clickXpath);
 
-                    if (isSamePage(previousPageStructure, afterPageStructure)) {
+                    if (isSamePage(currentPageStructure, afterPageStructure)) {
                         log.info("Page Not Change after Recursive return");
                     } else {
                         log.info("Page Change after Recursive return, Stop Traversing Current Page");
@@ -317,25 +340,26 @@ public class XPathUtil {
 
         if (!runningStates) {
             log.info("Current Package Name Changed : " + packageName + ". RunningStates is False, Returning ...");
+            //TODO
             return currentXml;
         }
 
         log.info(length + " nodes left");
         boolean isDoBack = true;
         //此时完了所有的页面元素并且UI也未发生变化, 结束该深度的遍历, 回退到上一层
-        if (length < 0 && isSamePage(previousPageStructure, afterPageStructure)) {
+        if (length < 0 && isSamePage(currentPageStructure, afterPageStructure)) {
             //如果允许滑动操作, 则需要观察滑动之后页面是否发生了变化, 如果发生了变化说明这一层的遍历还没有进行完全
             if (verticalSwipe) {
                 log.info("Check : Enable Vertically Swipe");
                 DriverUtil.verticallySwipe(false);
                 currentXml = DriverUtil.getPageSource();
 
-                previousPageStructure = afterPageStructure;
+                currentPageStructure = afterPageStructure;
                 afterPageStructure = getPageStructure(currentXml, clickXpath);
-                if (!isSamePage(previousPageStructure, afterPageStructure)) {
+                if (!isSamePage(currentPageStructure, afterPageStructure)) {
                     log.info("Page Change after Vertically swipe, Continue Current Depth Traverse ...");
                     isDoBack = false;
-                    currentXml = dfsCrawl(currentXml, currentDepth);
+                    currentXml = dfsCrawl(currentXml, currentDepth, currentPageStructure);
                 } else {
                     log.info("No Page Change after Vertically swipe");
                 }
@@ -359,7 +383,8 @@ public class XPathUtil {
                 currentXml = clickTapBarElement(currentXml, tabBarXpath);
                 if (null != currentXml) {
                     log.info("Tab Bar Change, Continue Traversing");
-                    dfsCrawl(currentXml, currentDepth);
+                    //TODO 点击tab之后深度是否需要 + 1
+                    dfsCrawl(currentXml, currentDepth, currentPageStructure);
                 } else {
                     DriverUtil.doBack();
                     DriverUtil.takeScreenShot();
@@ -376,7 +401,8 @@ public class XPathUtil {
                         DriverUtil.restartApp();
                         pressBackCount--;
                         currentXml = DriverUtil.getPageSource();
-                        dfsCrawl(currentXml, currentDepth);
+                        //重启之后深度归零
+                        dfsCrawl(currentXml, 0, null);
                     }
                 }
             }
@@ -384,12 +410,14 @@ public class XPathUtil {
             //仍未完成遍历或页面发生了变化，继续当前页面的遍历
             log.info("UI Change. Continue Current Depth(" + currentDepth + ") Traverse ...");
             currentXml = DriverUtil.getPageSource();
-            dfsCrawl(currentXml, currentDepth);
+            dfsCrawl(currentXml, currentDepth, previousPageStructure);
         }
 
         log.info("================ Complete current UI Traverse. Depth before return is " + currentDepth +" ================");
         //TODO
-        DriverUtil.doBack();
+        if (!isSamePage(previousPageStructure, currentPageStructure)){
+            doBackIfValid(currentPageStructure);
+        }
         return currentXml;
     }
 
@@ -442,7 +470,7 @@ public class XPathUtil {
             Node temp = nodes.item(length);
             String nodeXpath = XPathUtil.getNodeXpath(temp, true);
             if (null != nodeXpath) {
-                pageStrcture.append("\n").append(nodeXpath).append("\n");
+                pageStrcture.append(nodeXpath).append("\n");
             }
         }
         return pageStrcture.toString();
@@ -455,10 +483,10 @@ public class XPathUtil {
             return false;
         }
         boolean res = page1.equals(page2);
-        if (!res && runningStates) {
-            DriverUtil.takeScreenShot();
-            log.info("Page Change : From " + page1 + " To " + page2);
-        }
+//        if (!res && runningStates) {
+////            DriverUtil.takeScreenShot();
+//            log.info("Page Change : From \n" + page1 + " To \n" + page2);
+//        }
         return res;
     }
 
@@ -563,7 +591,8 @@ public class XPathUtil {
         }
         runningStates = true;
         if (status != PackageStatus.VALID) {
-            log.error("Invalid Package Name : " + packageName);
+            log.error("Invalid Package Name : " + packageName + "trying Switch App ...");
+            DriverUtil.switchApp();
             DriverUtil.takeScreenShot();
             if (DriverUtil.isExit(ConfigUtil.getUdid(), packageName)) {
                 status = PackageStatus.RESTART;
@@ -637,11 +666,34 @@ public class XPathUtil {
                     clickedElementMap.put(activityName, new HashSet<>(Collections.singleton(tag)));
                 }
             }
+
+            String temp;
+            String elementStr = element.toString();
+            try {
+                List<String> inputClassList = ConfigUtil.getInputClassList();
+                List<String> inputTextList = ConfigUtil.getInputTextList();
+                int classSize = inputTextList.size();
+                for (String elementClass : inputClassList) {
+                    temp = elementClass;
+                    if (elementStr.contains(elementClass)) {
+                        String text = inputTextList.get(DriverUtil.internalNextInt(0, classSize));
+//                        element.setValue(text);
+                        element.sendKeys(text);
+                        log.info("Element " + temp + " set Text : " + text);
+                        break;
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                log.error("Fail to set Text for " + elementStr);
+            }
+
             int x = element.getCenter().getX();
             int y = element.getCenter().getY();
 
+            DriverUtil.takeScreenShot(activityName, x, y);
             element.click();
-            DriverUtil.takeScreenShot(activityName);
+
             log.info("Click " + clickCount + "th, X: "  + x + " ,Y: " + y);
 
             DriverUtil.sleep(3);
@@ -655,26 +707,26 @@ public class XPathUtil {
                 runningStates = false;
             }
 
-            String temp = "";
-
-            try {
-                String elementStr = element.toString();
-                List<String> inputClassList = ConfigUtil.getInputClassList();
-                List<String> inputTextList = ConfigUtil.getInputTextList();
-                int classSize = inputTextList.size();
-                for (String elementClass : inputClassList) {
-                    temp = elementClass;
-                    if (elementStr.contains(elementClass)) {
-                        String text = inputTextList.get(DriverUtil.internalNextInt(0, classSize));
-                        element.setValue(text);
-                        log.info("Element " + temp + " set Text : " + text);
-                        break;
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                log.error("Fail to set Text for " + temp);
-            }
+//            String temp = "";
+//
+//            try {
+//                String elementStr = element.toString();
+//                List<String> inputClassList = ConfigUtil.getInputClassList();
+//                List<String> inputTextList = ConfigUtil.getInputTextList();
+//                int classSize = inputTextList.size();
+//                for (String elementClass : inputClassList) {
+//                    temp = elementClass;
+//                    if (elementStr.contains(elementClass)) {
+//                        String text = inputTextList.get(DriverUtil.internalNextInt(0, classSize));
+//                        element.setValue(text);
+//                        log.info("Element " + temp + " set Text : " + text);
+//                        break;
+//                    }
+//                }
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//                log.error("Fail to set Text for " + temp);
+//            }
         } catch (Exception e) {
             e.printStackTrace();
             log.error("Fail to Click Element : " + element);
@@ -721,6 +773,34 @@ public class XPathUtil {
             log.info("All Tab Bar Elements iterated");
         }
         return ret;
+    }
+
+    private static void doBackIfValid(String currentPageStructure) {
+        if (!pageMap.containsKey(currentPageStructure)) {
+            log.error("DoBack Page Map Error : CurrentPage not in Page Map");
+            DriverUtil.doBack();
+        } else if (pageMap.get(currentPageStructure) > 0) {
+            DriverUtil.doBack();
+        }
+    }
+
+    //调试用信息输出
+    public static void shutDownInfoPrint() {
+        log.info("Shut Down Data Check --------");
+        log.info("Page map:");
+//        log.info(pageMap.toString());
+        HashSet<Long> values = new HashSet<>(pageMap.values());
+        for (long i:values) {
+            log.info("Depth " + i);
+            for (String key:pageMap.keySet()) {
+                if (i == pageMap.get(key))
+                    log.info(key);
+            }
+            log.info("");
+        }
+        log.info("Clicked Activity Map:");
+        log.info(clickedActivityMap.toString());
+        log.info("-----------------------------");
     }
 
 }

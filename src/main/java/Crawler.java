@@ -1,6 +1,7 @@
 import io.appium.java_client.AppiumDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.CommandUtil;
 import utils.ConfigUtil;
 import utils.DriverUtil;
 import utils.XPathUtil;
@@ -21,6 +22,7 @@ public class Crawler {
         public void run() {
             log.info("Shutting down ...");
             XPathUtil.shutDownInfoPrint();
+            CommandUtil.endTcpdump(ConfigUtil.getPackageName());
         }
     }
 
@@ -33,6 +35,9 @@ public class Crawler {
         log.info("Config File Path: " + configFile);
         udid = "127.0.0.1:62001";
         ConfigUtil.initialize(configFile, udid);
+
+        CommandUtil.startTcpdump(ConfigUtil.getPackageName());
+
         driver = DriverUtil.getAndroidAppiumDriver(ConfigUtil.getPackageName(), ConfigUtil.getMainActivity(), ConfigUtil.getUdid(), ConfigUtil.getPort());
         if (driver == null) {
             log.error("Fail to start appium server");
@@ -42,7 +47,6 @@ public class Crawler {
         log.info(driver.toString());
 
         Runtime.getRuntime().addShutdownHook(new ShutDownHandler());
-
         try {
             //等待app启动完毕
             DriverUtil.sleep(10);
@@ -61,9 +65,11 @@ public class Crawler {
         } catch (Exception e) {
             e.printStackTrace();
             log.error("========== Fail ==========");
+        } finally {
+            CommandUtil.endTcpdump(ConfigUtil.getPackageName());
+            DriverUtil.driver.quit();
         }
 
-        DriverUtil.driver.quit();
     }
 
 

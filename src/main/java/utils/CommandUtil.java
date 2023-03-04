@@ -17,6 +17,21 @@ public class CommandUtil {
         return executeCmd(commandStr, true);
     }
 
+    public static void executeCmdWithoutOutput(String command) {
+        String[] cmd = new String[3];
+        cmd[0] = "cmd.exe";
+        cmd[1] = "/C";
+        cmd[2] = command;
+
+        try {
+            log.info("ExecuteCmd : " + Arrays.asList(cmd));
+            Runtime.getRuntime().exec(cmd);
+        } catch (IOException e) {
+            e.printStackTrace();
+            log.error("Fail to start Tcpdump");
+        }
+    }
+
     public static String executeCmd(String[] commandStr, boolean show) {
 
         if (show) {
@@ -69,12 +84,23 @@ public class CommandUtil {
         return executeCmd(cmd, show);
     }
 
-    public static void startTcpdump() {
-
+    public static void startTcpdump(String pcapFileName) {
+        log.info("Starting Tcpdump ...");
+        CommandUtil.executeCmd("adb -s " + ConfigUtil.getUdid() + " shell killall tcpdump ");
+        DriverUtil.sleep(0.8);
+        CommandUtil.executeCmdWithoutOutput("adb -s " + ConfigUtil.getUdid() + " shell tcpdump -i wlan0 -p -s 0 -w /sdcard/pcaps/" + pcapFileName + ".pcap &");
+        DriverUtil.sleep(0.5);
     }
 
-    public static void endTcpdump() {
-
+    public static void endTcpdump(String pcapFileName) {
+        log.info("Ending Tcpdump ...");
+        CommandUtil.executeCmd("mkdir \"" + ConfigUtil.getPcapDir() + "\"");
+        DriverUtil.sleep(0.5);
+        CommandUtil.executeCmd("adb -s " + ConfigUtil.getUdid() + " shell killall tcpdump ");
+        DriverUtil.sleep(1);
+        log.info("Moving pcap file to output Dir ...");
+        CommandUtil.executeCmd("adb -s " + ConfigUtil.getUdid() + " pull /sdcard/pcaps/" + pcapFileName + ".pcap \"" + ConfigUtil.getPcapDir() + pcapFileName + ".pcap\"");
+        DriverUtil.sleep(1);
     }
 
 

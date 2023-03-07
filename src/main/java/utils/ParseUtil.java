@@ -9,13 +9,12 @@ import org.slf4j.LoggerFactory;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class ParseUtil {
     public static Logger log = LoggerFactory.getLogger(ParseUtil.class);
+
+    public static final int VALID_PACKET_COUNT_THRESHOLD = 10;
 
     public static List<BasicFlow> getFlowsFromCsv(String csvFileName) {
         List<BasicFlow> flows = null;
@@ -68,6 +67,18 @@ public class ParseUtil {
         return flows;
     }
 
+    public static List<BasicFlow> getValidFlowsFromCsv(String csvFileName) {
+        List<BasicFlow> flows = getFlowsFromCsv(csvFileName);
+        List<BasicFlow> invalidFlows = new ArrayList<>();
+        for (BasicFlow flow : flows) {
+            if ((flow.getFeature().getBwdPktCount() + flow.getFeature().getFwdPktCount()) <= VALID_PACKET_COUNT_THRESHOLD) {
+                invalidFlows.add(flow);
+            }
+        }
+        flows.removeAll(invalidFlows);
+        return flows;
+    }
+
     public static double getFlowFeatureCosineSimilarity(FlowFeature feature1, FlowFeature feature2){
         return cosineSimilarity(feature1.getFeatureList(),feature2.getFeatureList());
     }
@@ -83,6 +94,40 @@ public class ParseUtil {
         }
         return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
     }
+
+    public static void buildMultiFlow() {
+        //TODO
+        String [] csvFiles = {"D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic.pcap_Flow.csv",
+                "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic2.pcap_Flow.csv",
+                "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic3.pcap_Flow.csv",
+                "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic4_onlyUpLoad.pcap_Flow.csv","" +
+                "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic5.pcap_Flow.csv"};
+
+        List<BasicFlow> flows0 = ParseUtil.getValidFlowsFromCsv(csvFiles[0]);
+        Set<BasicFlow> multiFlows = new HashSet<>(flows0);
+
+        for (int i = 1; i < csvFiles.length; i++) {
+
+            //TODO 记录单个文件内的多流关系
+
+            List<BasicFlow> flows = ParseUtil.getValidFlowsFromCsv(csvFiles[i]);
+            for (BasicFlow flow : flows) {
+                for (BasicFlow valFlow : multiFlows) {
+                    if (getFlowFeatureCosineSimilarity(flow.getFeature(), valFlow.getFeature()) < 0.8) {
+                        multiFlows.add(flow);
+                        break;
+                    }
+                }
+
+
+            }
+
+
+            //todo 同步到整体多流库中
+        }
+
+    }
+
 
     public static void test() {
         FlowFeature feature1 = new FlowFeature(2840,0,560.255639097744,702.029586423657,65,67,68557,5957,1460,2840,0,0,1054.72307692307,88.9104477611939,584.501831361874,428.158450255923);
@@ -117,14 +162,9 @@ public class ParseUtil {
         System.out.println(ParseUtil.getFlowFeatureCosineSimilarity(feature6,feature3));
     }
 
+
     public static void main(String[] args) {
-//        ParseUtil.test();
-        List<BasicFlow> flows = ParseUtil.getFlowsFromCsv("D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic.pcap_Flow.csv");
-        FlowFeature feature2 = new FlowFeature(2840,0,636.409638554217,716.562307965641,122,126,151891,6575,1460,2840,0,0,1245.00819672131,52.1825396825396,471.016914575852,308.472660721656);
-        for (BasicFlow flow: flows) {
-            System.out.println(flow.toString());
-            System.out.println(ParseUtil.getFlowFeatureCosineSimilarity(flow.getFeature(),feature2));
-        }
+        ParseUtil.test();
     }
 
 }

@@ -103,29 +103,97 @@ public class ParseUtil {
                 "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic4_onlyUpLoad.pcap_Flow.csv","" +
                 "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic5.pcap_Flow.csv"};
 
-        List<BasicFlow> flows0 = ParseUtil.getValidFlowsFromCsv(csvFiles[0]);
-        Set<BasicFlow> multiFlows = new HashSet<>(flows0);
+        Set<BasicFlow> multiFlows = new HashSet<>();
+        Map<BasicFlow, Map<BasicFlow,Integer>> pianXu = new HashMap<>();
+        Map<BasicFlow, Integer> count = new HashMap<>();
 
-        for (int i = 1; i < csvFiles.length; i++) {
-
-            //TODO 记录单个文件内的多流关系
-
+        for (int i = 0; i < csvFiles.length; i++) {
             List<BasicFlow> flows = ParseUtil.getValidFlowsFromCsv(csvFiles[i]);
-            for (BasicFlow flow : flows) {
-                for (BasicFlow valFlow : multiFlows) {
-                    if (getFlowFeatureCosineSimilarity(flow.getFeature(), valFlow.getFeature()) < 0.8) {
-                        multiFlows.add(flow);
-                        break;
+            if (multiFlows.size()==0) {
+                multiFlows.addAll(flows);
+                for (BasicFlow ff : flows) {
+                    count.put(ff,1);
+                    pianXu.put(ff,new HashMap<>());
+                }
+                for (int j = 0; j < flows.size(); j++) {
+                    for (int k = 0; k < flows.size(); k++) {
+                        if (j == k) continue;
+                        Map<BasicFlow, Integer> rel = pianXu.get(flows.get(j));
+                        if (flows.get(j).getTimestamp().before(flows.get(k).getTimestamp())) {
+                            if (null == rel.get(flows.get(k))) {
+                                rel.put(flows.get(k),1);
+                            } else {
+                                rel.put(flows.get(k),rel.get(flows.get(k))+1);
+                            }
+                        } else {
+                            if (null == rel.get(flows.get(k))) {
+                                rel.put(flows.get(k),-1);
+                            } else {
+                                rel.put(flows.get(k),rel.get(flows.get(k))-1);
+                            }
+                        }
                     }
                 }
-
-
+            } else {
+                Set<BasicFlow> updateMultiFlow = new HashSet<>();
+                Set<BasicFlow> updateRelFlows = new HashSet<>();
+                for (BasicFlow flow : flows) {
+                    boolean flag = false;
+                    for (BasicFlow valFlow : multiFlows) {
+                        if (getFlowFeatureCosineSimilarity(flow.getFeature(), valFlow.getFeature()) > 0.9) {
+//                            count.put(valFlow,count.get(valFlow)+1);
+                            updateMultiFlow.add(valFlow);
+                            updateRelFlows.add(valFlow);
+                            flag = true;
+                            break;
+                        }
+                    }
+                    if (!flag) {
+                        multiFlows.add(flow);
+                        count.put(flow,1);
+                        updateRelFlows.add(flow);
+                        pianXu.put(flow, new HashMap<>());
+                    }
+                }
+                for (BasicFlow updateFlow : updateMultiFlow) {
+                    count.put(updateFlow,count.get(updateFlow)+1);
+                }
+                for (BasicFlow relFlow : updateRelFlows) {
+                    for (BasicFlow multiFlow : updateRelFlows) {
+                        if (relFlow.equals(multiFlow)) continue;
+                        Map<BasicFlow, Integer> rel = pianXu.get(relFlow);
+                        if (relFlow.getTimestamp().before(multiFlow.getTimestamp())) {
+                            if (null == rel.get(multiFlow)) {
+                                rel.put(multiFlow,1);
+                            } else {
+                                rel.put(multiFlow,rel.get(multiFlow)+1);
+                            }
+                        } else {
+                            if (null == rel.get(multiFlow)) {
+                                rel.put(multiFlow,-1);
+                            } else {
+                                rel.put(multiFlow,rel.get(multiFlow)-1);
+                            }
+                        }
+                    }
+                }
             }
-
-
-            //todo 同步到整体多流库中
         }
-
+        System.out.println("------------------------------");
+        for (BasicFlow f :
+                count.keySet()) {
+            System.out.println(f);
+            System.out.println(count.get(f));
+        }
+        System.out.println("------------------------------");
+        for (BasicFlow flow : pianXu.keySet()) {
+            Map<BasicFlow, Integer> rels = pianXu.get(flow);
+            System.out.println(flow);
+            for (BasicFlow flow1 : rels.keySet()) {
+                System.out.println(rels.get(flow1) + " : " + flow1);
+            }
+            System.out.println("===============================");
+        }
     }
 
 
@@ -164,7 +232,8 @@ public class ParseUtil {
 
 
     public static void main(String[] args) {
-        ParseUtil.test();
+//        ParseUtil.test();
+        ParseUtil.buildMultiFlow();
     }
 
 }

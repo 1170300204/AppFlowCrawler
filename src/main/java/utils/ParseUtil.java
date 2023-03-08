@@ -96,7 +96,6 @@ public class ParseUtil {
     }
 
     public static void buildMultiFlow() {
-        //TODO
         String [] csvFiles = {"D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic.pcap_Flow.csv",
                 "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic2.pcap_Flow.csv",
                 "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic3.pcap_Flow.csv",
@@ -106,12 +105,14 @@ public class ParseUtil {
         Set<BasicFlow> multiFlows = new HashSet<>();
         Map<BasicFlow, Map<BasicFlow,Integer>> pianXu = new HashMap<>();
         Map<BasicFlow, Integer> count = new HashMap<>();
-
+        int index = 1;
         for (int i = 0; i < csvFiles.length; i++) {
             List<BasicFlow> flows = ParseUtil.getValidFlowsFromCsv(csvFiles[i]);
             if (multiFlows.size()==0) {
                 multiFlows.addAll(flows);
                 for (BasicFlow ff : flows) {
+                    ff.setId(index);
+                    index++;
                     count.put(ff,1);
                     pianXu.put(ff,new HashMap<>());
                 }
@@ -149,6 +150,8 @@ public class ParseUtil {
                         }
                     }
                     if (!flag) {
+                        flow.setId(index);
+                        index++;
                         multiFlows.add(flow);
                         count.put(flow,1);
                         updateRelFlows.add(flow);
@@ -196,7 +199,6 @@ public class ParseUtil {
         }
     }
 
-
     public static void test() {
         FlowFeature feature1 = new FlowFeature(2840,0,560.255639097744,702.029586423657,65,67,68557,5957,1460,2840,0,0,1054.72307692307,88.9104477611939,584.501831361874,428.158450255923);
         System.out.println(feature1);
@@ -229,7 +231,6 @@ public class ParseUtil {
         System.out.println(ParseUtil.getFlowFeatureCosineSimilarity(feature5,feature3));
         System.out.println(ParseUtil.getFlowFeatureCosineSimilarity(feature6,feature3));
     }
-
 
     public static void main(String[] args) {
 //        ParseUtil.test();

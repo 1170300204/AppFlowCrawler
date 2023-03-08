@@ -295,6 +295,7 @@ public class XPathUtil {
                     log.info("Node not Found in Current UI. Stopping Current iteration ...");
                     break;
                 }
+                //todo 记录按钮点击的前后深度变化,抽象点击元素为一个标识符
                 currentXml = clickElement(element, currentXml);
                 afterPageStructure = getPageStructure(currentXml,clickXpath);
                 //发生了页面变化, 检查完毕后进入更深一层的递归
@@ -478,7 +479,7 @@ public class XPathUtil {
     }
 
     public static boolean isSamePage(String page1, String page2) {
-        //TODO
+        //TODO 页面比较逻辑
         if (null == page1 || null ==page2) {
             log.error(LoggerUtil.getMethodName() + " : Null Page Compare");
             return false;

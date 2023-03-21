@@ -4,7 +4,7 @@ import org.slf4j.LoggerFactory;
 import utils.CommandUtil;
 import utils.ConfigUtil;
 import utils.DriverUtil;
-import utils.XPathUtil;
+import utils.CrawlUtil;
 
 import java.io.File;
 import java.util.Date;
@@ -21,8 +21,9 @@ public class Crawler {
         @Override
         public void run() {
             log.info("Shutting down ...");
-            XPathUtil.shutDownInfoPrint();
+            CrawlUtil.shutDownInfoPrint();
             CommandUtil.endTcpdump(ConfigUtil.getPackageName());
+            CrawlUtil.writeTimeStamp();
         }
     }
 
@@ -51,12 +52,12 @@ public class Crawler {
             //等待app启动完毕
             DriverUtil.sleep(10);
             //初始化XPath
-            XPathUtil.initialize(udid);
+            CrawlUtil.initialize(udid);
             //获取PageSource
             String pageSource = DriverUtil.getPageSource();
 
             log.info("======== In App UI/Flow Crawler Func (DFS mode) ========");
-            XPathUtil.dfsCrawl(pageSource, 0, null);
+            CrawlUtil.dfsCrawl(pageSource, 0, null);
 
             log.info("==================================");
             log.info("======== Complete running ========");
@@ -67,6 +68,7 @@ public class Crawler {
             log.error("========== Fail ==========");
         } finally {
             CommandUtil.endTcpdump(ConfigUtil.getPackageName());
+            CrawlUtil.writeTimeStamp();
             DriverUtil.driver.quit();
         }
 

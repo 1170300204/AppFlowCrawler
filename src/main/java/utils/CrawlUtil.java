@@ -2,7 +2,6 @@ package utils;
 
 import enums.PackageStatus;
 import io.appium.java_client.MobileElement;
-import jdk.nashorn.internal.runtime.regexp.joni.constants.Traverse;
 import org.openqa.selenium.By;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,12 +11,18 @@ import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.*;
 import javax.xml.xpath.*;
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileWriter;
+import java.sql.Timestamp;
 import java.util.*;
 
-public class XPathUtil {
+public class CrawlUtil {
 
-    public static Logger log = LoggerFactory.getLogger(XPathUtil.class);
+    public static Logger log = LoggerFactory.getLogger(CrawlUtil.class);
+    public static StringBuilder timestampBuilder;
+
     public static XPath xPath = XPathFactory.newInstance().newXPath();
     private static final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
     private static DocumentBuilder documentBuilder;
@@ -68,6 +73,8 @@ public class XPathUtil {
 
     public static void initialize(String udid) {
         log.info("initialize XPath module ...");
+
+        timestampBuilder = new StringBuilder();
 
         crawlerRunningTime = ConfigUtil.getCrawlerRunningTime();
         beginTime = System.currentTimeMillis();
@@ -193,6 +200,8 @@ public class XPathUtil {
             if (currentDepth < pageDepth) {
                 pageMap.put(currentPageStructure,currentDepth);
                 log.info("Depth update from " + pageDepth + " to " + currentDepth);
+            } else {
+                currentDepth = pageDepth;
             }
             log.info("Back to Map Page (Depth:" + currentDepth + ") :\n");
             log.info(currentPageStructure);
@@ -296,8 +305,19 @@ public class XPathUtil {
                     break;
                 }
                 //todo 记录按钮点击的前后深度变化,抽象点击元素为一个标识符
+                Timestamp startTime = getTimeStamp();
                 currentXml = clickElement(element, currentXml);
+                Timestamp endTime = getTimeStamp();
                 afterPageStructure = getPageStructure(currentXml,clickXpath);
+
+                //todo 记录点击信息
+                if (pageMap.containsKey(afterPageStructure)) {
+                    addTimeStamp(startTime, endTime, element.getId(), currentDepth, pageMap.get(afterPageStructure));
+                } else {
+                    addTimeStamp(startTime, endTime, element.getId(), currentDepth, currentDepth+1);
+                }
+
+
                 //发生了页面变化, 检查完毕后进入更深一层的递归
                 if (!isSamePage(currentPageStructure, afterPageStructure) && runningStates) {
                     log.info("======== Page Change From\n");
@@ -470,7 +490,7 @@ public class XPathUtil {
         while (length > 0) {
             length--;
             Node temp = nodes.item(length);
-            String nodeXpath = XPathUtil.getNodeXpath(temp, true);
+            String nodeXpath = CrawlUtil.getNodeXpath(temp, true);
             if (null != nodeXpath) {
                 pageStrcture.append(nodeXpath).append("\n");
             }
@@ -698,7 +718,7 @@ public class XPathUtil {
 
             log.info("Click " + clickCount + "th, X: "  + x + " ,Y: " + y);
 
-            DriverUtil.sleep(3);
+            DriverUtil.sleep(4);
             page = DriverUtil.getPageSource();
             PackageStatus status = getPackageStatus(appName, false);
 
@@ -803,6 +823,33 @@ public class XPathUtil {
         log.info("Clicked Activity Map:");
         log.info(clickedActivityMap.toString());
         log.info("-----------------------------");
+    }
+
+    public static Timestamp getTimeStamp() {
+        return new Timestamp(System.currentTimeMillis());
+    }
+
+    public static void addTimeStamp(Timestamp startTime, Timestamp endTime, String action, long startDepth, long endDepth) {
+        timestampBuilder.append(startTime.toString()).append("\t").append(endTime.toString()).append("\t").append(action).append("\t")
+                        .append(startDepth).append("\t").append(endDepth).append("\t").append("\n");
+    }
+
+    public static void writeTimeStamp() {
+        String timestampFile = ConfigUtil.getPcapDir() + "timestamp.txt";
+        try {
+            File file = new File(timestampFile);
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+            FileWriter writer = new FileWriter(file);
+            BufferedWriter out = new BufferedWriter(writer);
+            out.write(timestampBuilder.toString());
+            out.flush();
+            out.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("Fail to write TimeStamp File");
+        }
     }
 
 }

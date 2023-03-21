@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Arrays;
@@ -84,8 +85,14 @@ public class CommandUtil {
         return executeCmd(cmd, show);
     }
 
-    public static void startTcpdump(String pcapFileName) {
+    public static void startTcpdump(String pcapFileName) throws IOException {
         log.info("Starting Tcpdump ...");
+//        CommandUtil.executeCmd("mkdir \"" + ConfigUtil.getPcapDir() + "\"");
+        File pcapDir = new File(ConfigUtil.getPcapDir());
+        if (!pcapDir.exists()) {
+            pcapDir.mkdirs();
+        }
+        DriverUtil.sleep(0.5);
         CommandUtil.executeCmd("adb -s " + ConfigUtil.getUdid() + " shell killall tcpdump ");
         DriverUtil.sleep(0.8);
         CommandUtil.executeCmdWithoutOutput("adb -s " + ConfigUtil.getUdid() + " shell tcpdump -i wlan0 -p -s 0 -w /sdcard/pcaps/" + pcapFileName + ".pcap &");
@@ -94,8 +101,6 @@ public class CommandUtil {
 
     public static void endTcpdump(String pcapFileName) {
         log.info("Ending Tcpdump ...");
-        CommandUtil.executeCmd("mkdir \"" + ConfigUtil.getPcapDir() + "\"");
-        DriverUtil.sleep(0.5);
         CommandUtil.executeCmd("adb -s " + ConfigUtil.getUdid() + " shell killall tcpdump ");
         DriverUtil.sleep(1);
         log.info("Moving pcap file to output Dir ...");

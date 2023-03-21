@@ -6,7 +6,9 @@ import flow.FlowFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -226,6 +228,23 @@ public class ParseUtil {
         }
     }
 
+    public static ArrayList<String[]> getTimeStamps(String timestampFile) {
+        File file = new File(timestampFile);
+        BufferedReader reader = null;
+        String temp = null;
+        ArrayList<String[]> timestamps = new ArrayList<>();
+        try {
+            reader = new BufferedReader(new FileReader(file));
+            while ((temp=reader.readLine())!=null) {
+                String[] cols = temp.split("\t");
+                timestamps.add(cols);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return timestamps;
+    }
+
     public static void test() {
         FlowFeature feature1 = new FlowFeature(2840,0,560.255639097744,702.029586423657,65,67,68557,5957,1460,2840,0,0,1054.72307692307,88.9104477611939,584.501831361874,428.158450255923);
         System.out.println(feature1);
@@ -261,7 +280,13 @@ public class ParseUtil {
 
     public static void main(String[] args) {
 //        ParseUtil.test();
-        ParseUtil.buildMultiFlow(System.getProperty("user.dir") + File.separator + "csv" + File.separator);
+//        ParseUtil.buildMultiFlow(System.getProperty("user.dir") + File.separator + "csv" + File.separator);
+        //todo
+        ArrayList<String[]> timeStamps = getTimeStamps("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\timestamp.txt");
+        String cmd = "editcap -A \"" + timeStamps.get(0)[0] + "\" -B \"" + timeStamps.get(0)[1] + "\" \"D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\com.vkontakte.android.pcap\" \"D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\" + timeStamps.get(0)[2] + ".pcap\"";
+//        String cmd = "dir";
+        System.out.println(CommandUtil.executeCmd(cmd));
+
     }
 
 }

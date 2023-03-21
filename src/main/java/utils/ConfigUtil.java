@@ -24,6 +24,7 @@ public class ConfigUtil {
     public static String appDir;
     public static String screenshotDir;
     public static String pcapDir;
+    public static String csvDir;
 
     //default config items
     public static final String APPIUM_SERVER_IP = "APPIUM_SERVER_IP";
@@ -164,6 +165,7 @@ public class ConfigUtil {
             appDir = outputDir + packageName + "-" + getDatetime() + File.separator;
             screenshotDir = appDir + "screenshots" + File.separator;
             pcapDir = appDir + "pcaps" + File.separator;
+            csvDir = packageName + "csv" + File.separator;
 
 
         } catch (FileNotFoundException e) {

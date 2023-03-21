@@ -6,6 +6,7 @@ import flow.FlowFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -16,12 +17,36 @@ public class ParseUtil {
 
     public static final int VALID_PACKET_COUNT_THRESHOLD = 10;
 
-    public static List<BasicFlow> getFlowsFromCsv(String csvFileName) {
+    public static List<File> getAllFile(String filePath) {
+        File dirFile = new File(filePath);
+        // 如果文件夹不存在或着不是文件夹，则返回 null
+        if (!dirFile.exists() || dirFile.isFile())
+            return null;
+
+        File[] childrenFiles = dirFile.listFiles();
+        if (Objects.isNull(childrenFiles) || childrenFiles.length == 0)
+            return null;
+
+        List<File> files = new ArrayList<>();
+        for (File childFile : childrenFiles) {
+            if (childFile.isFile()) {
+                files.add(childFile);
+            }
+//            else {
+//                List<File> cFiles = getAllFile(childFile);
+//                if (Objects.isNull(cFiles) || cFiles.isEmpty()) continue;
+//                files.addAll(cFiles);
+//            }
+        }
+        return files;
+    }
+
+    public static List<BasicFlow> getFlowsFromCsv(File csvFile) {
         List<BasicFlow> flows = null;
         CsvReader csvReader = null;
         try {
             flows = new ArrayList<>();
-             csvReader = new CsvReader(csvFileName, ',', Charset.forName("GBK"));
+             csvReader = new CsvReader(csvFile.getAbsolutePath(), ',', Charset.forName("GBK"));
             String []flowData;
             csvReader.readRecord();
             while (csvReader.readRecord()) {
@@ -59,7 +84,7 @@ public class ParseUtil {
             }
         } catch (Exception e) {
             e.printStackTrace();
-            log.error("Fail to read CSV File : " + csvFileName);
+            log.error("Fail to read CSV File : " + csvFile.getName());
         } finally {
             if (null!=csvReader)
                 csvReader.close();
@@ -67,8 +92,8 @@ public class ParseUtil {
         return flows;
     }
 
-    public static List<BasicFlow> getValidFlowsFromCsv(String csvFileName) {
-        List<BasicFlow> flows = getFlowsFromCsv(csvFileName);
+    public static List<BasicFlow> getValidFlowsFromCsv(File csvFile) {
+        List<BasicFlow> flows = getFlowsFromCsv(csvFile);
         List<BasicFlow> invalidFlows = new ArrayList<>();
         for (BasicFlow flow : flows) {
             if ((flow.getFeature().getBwdPktCount() + flow.getFeature().getFwdPktCount()) <= VALID_PACKET_COUNT_THRESHOLD) {
@@ -95,26 +120,28 @@ public class ParseUtil {
         return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
     }
 
-    public static void buildMultiFlow() {
-        String [] csvFiles = {"D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic.pcap_Flow.csv",
-                "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic2.pcap_Flow.csv",
-                "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic3.pcap_Flow.csv",
-                "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic4_onlyUpLoad.pcap_Flow.csv","" +
-                "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic5.pcap_Flow.csv"};
+    public static void buildMultiFlow(String path) {
+//        String [] csvFiles = {"D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic.pcap_Flow.csv",
+//                "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic2.pcap_Flow.csv",
+//                "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic3.pcap_Flow.csv",
+//                "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic4_onlyUpLoad.pcap_Flow.csv","" +
+//                "D:\\Workspace\\IDEA_workspace\\AppFlowCrawler\\csv\\uploadPic5.pcap_Flow.csv"};
+        List<File> csvFiles = getAllFile(path);
+        if (null == csvFiles)   return;
 
         Set<BasicFlow> multiFlows = new HashSet<>();
         Map<BasicFlow, Map<BasicFlow,Integer>> pianXu = new HashMap<>();
         Map<BasicFlow, Integer> count = new HashMap<>();
         int index = 1;
-        for (int i = 0; i < csvFiles.length; i++) {
-            List<BasicFlow> flows = ParseUtil.getValidFlowsFromCsv(csvFiles[i]);
-            if (multiFlows.size()==0) {
+        for (File csvFile : csvFiles) {
+            List<BasicFlow> flows = ParseUtil.getValidFlowsFromCsv(csvFile);
+            if (multiFlows.size() == 0) {
                 multiFlows.addAll(flows);
                 for (BasicFlow ff : flows) {
                     ff.setId(index);
                     index++;
-                    count.put(ff,1);
-                    pianXu.put(ff,new HashMap<>());
+                    count.put(ff, 1);
+                    pianXu.put(ff, new HashMap<>());
                 }
                 for (int j = 0; j < flows.size(); j++) {
                     for (int k = 0; k < flows.size(); k++) {
@@ -122,15 +149,15 @@ public class ParseUtil {
                         Map<BasicFlow, Integer> rel = pianXu.get(flows.get(j));
                         if (flows.get(j).getTimestamp().before(flows.get(k).getTimestamp())) {
                             if (null == rel.get(flows.get(k))) {
-                                rel.put(flows.get(k),1);
+                                rel.put(flows.get(k), 1);
                             } else {
-                                rel.put(flows.get(k),rel.get(flows.get(k))+1);
+                                rel.put(flows.get(k), rel.get(flows.get(k)) + 1);
                             }
                         } else {
                             if (null == rel.get(flows.get(k))) {
-                                rel.put(flows.get(k),-1);
+                                rel.put(flows.get(k), -1);
                             } else {
-                                rel.put(flows.get(k),rel.get(flows.get(k))-1);
+                                rel.put(flows.get(k), rel.get(flows.get(k)) - 1);
                             }
                         }
                     }
@@ -153,13 +180,13 @@ public class ParseUtil {
                         flow.setId(index);
                         index++;
                         multiFlows.add(flow);
-                        count.put(flow,1);
+                        count.put(flow, 1);
                         updateRelFlows.add(flow);
                         pianXu.put(flow, new HashMap<>());
                     }
                 }
                 for (BasicFlow updateFlow : updateMultiFlow) {
-                    count.put(updateFlow,count.get(updateFlow)+1);
+                    count.put(updateFlow, count.get(updateFlow) + 1);
                 }
                 for (BasicFlow relFlow : updateRelFlows) {
                     for (BasicFlow multiFlow : updateRelFlows) {
@@ -167,15 +194,15 @@ public class ParseUtil {
                         Map<BasicFlow, Integer> rel = pianXu.get(relFlow);
                         if (relFlow.getTimestamp().before(multiFlow.getTimestamp())) {
                             if (null == rel.get(multiFlow)) {
-                                rel.put(multiFlow,1);
+                                rel.put(multiFlow, 1);
                             } else {
-                                rel.put(multiFlow,rel.get(multiFlow)+1);
+                                rel.put(multiFlow, rel.get(multiFlow) + 1);
                             }
                         } else {
                             if (null == rel.get(multiFlow)) {
-                                rel.put(multiFlow,-1);
+                                rel.put(multiFlow, -1);
                             } else {
-                                rel.put(multiFlow,rel.get(multiFlow)-1);
+                                rel.put(multiFlow, rel.get(multiFlow) - 1);
                             }
                         }
                     }
@@ -234,7 +261,7 @@ public class ParseUtil {
 
     public static void main(String[] args) {
 //        ParseUtil.test();
-        ParseUtil.buildMultiFlow();
+        ParseUtil.buildMultiFlow(System.getProperty("user.dir") + File.separator + "csv" + File.separator);
     }
 
 }

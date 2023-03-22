@@ -45,7 +45,12 @@ public class CommandUtil {
         try {
             Process p;
             p = Runtime.getRuntime().exec(commandStr);
+            int exitValue = p.waitFor();
+            if (0 != exitValue) {
+                log.error("call shell failed. error code is :" + exitValue);
+            }
             br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+//            br = new BufferedReader(new InputStreamReader(p.getErrorStream(), "GBK"));
             String line;
             StringBuilder output = new StringBuilder();
             while ((line = br.readLine()) != null) {
@@ -83,6 +88,22 @@ public class CommandUtil {
         cmd[2] = commandStr;
 
         return executeCmd(cmd, show);
+    }
+
+    public static void executeCmdNormal(String cmd) {
+        try {
+            Process p;
+            p = Runtime.getRuntime().exec(cmd);
+            int exitValue = p.waitFor();
+            if (0 != exitValue) {
+                log.error("call shell failed. error code is :" + exitValue);
+            }
+            p.waitFor();
+            p.destroy();
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("Fail to execute cmd : " + cmd);
+        }
     }
 
     public static void startTcpdump(String pcapFileName) throws IOException {

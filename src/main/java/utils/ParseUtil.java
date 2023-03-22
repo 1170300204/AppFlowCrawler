@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -16,6 +17,8 @@ import java.util.*;
 
 public class ParseUtil {
     public static Logger log = LoggerFactory.getLogger(ParseUtil.class);
+
+    public static final String EDITCAP_PATH = "\"C:\\Program Files\\Wireshark\\editcap.exe\"";
 
     public static final int VALID_PACKET_COUNT_THRESHOLD = 10;
 
@@ -245,6 +248,26 @@ public class ParseUtil {
         return timestamps;
     }
 
+    public static void extract(String timestampFile, String pcapFile) {
+        ArrayList<String[]> timeStamps = getTimeStamps(timestampFile);
+        ArrayList<String> outputFiles = new ArrayList<>();
+        for (String[] cols : timeStamps) {
+            File pcap = new File(pcapFile);
+            String outputFile;
+            if (pcap.exists()) {
+                outputFile = pcap.getParentFile().getAbsolutePath() + File.separator + cols[2] + "_" + cols[3] + "_" + cols[4] + ".pcap";
+            } else {
+                outputFile = cols[2] + "_" + cols[3] + "_" + cols[4] + ".pcap";
+            }
+            String cmd = EDITCAP_PATH + " -A \"" + cols[0] + "\" -B \"" + cols[1]+ "\" \"" + pcapFile + "\" \"" + outputFile + "\"";
+            outputFiles.add(outputFile);
+            System.out.println(cmd);
+            CommandUtil.executeCmdNormal(cmd);
+        }
+        System.out.println(outputFiles);
+
+    }
+
     public static void test() {
         FlowFeature feature1 = new FlowFeature(2840,0,560.255639097744,702.029586423657,65,67,68557,5957,1460,2840,0,0,1054.72307692307,88.9104477611939,584.501831361874,428.158450255923);
         System.out.println(feature1);
@@ -278,15 +301,19 @@ public class ParseUtil {
         System.out.println(ParseUtil.getFlowFeatureCosineSimilarity(feature6,feature3));
     }
 
-    public static void main(String[] args) {
+
+
+    public static void main(String[] args) throws IOException {
 //        ParseUtil.test();
 //        ParseUtil.buildMultiFlow(System.getProperty("user.dir") + File.separator + "csv" + File.separator);
         //todo
-        ArrayList<String[]> timeStamps = getTimeStamps("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\timestamp.txt");
-        String cmd = "editcap -A \"" + timeStamps.get(0)[0] + "\" -B \"" + timeStamps.get(0)[1] + "\" \"D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\com.vkontakte.android.pcap\" \"D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\" + timeStamps.get(0)[2] + ".pcap\"";
-//        String cmd = "dir";
-        System.out.println(CommandUtil.executeCmd(cmd));
-
+//        ArrayList<String[]> timeStamps = getTimeStamps("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\timestamp.txt");
+//        String cmd = "\"C:\\Program Files\\Wireshark\\editcap.exe\" -A \"" + timeStamps.get(0)[0] + "\" -B \"" + timeStamps.get(0)[1] + "\" \"D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\com.vkontakte.android.pcap\" \"D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\" + timeStamps.get(0)[2] + ".pcap\"";
+////        String cmd = "\"C:\\Program Files\\Wireshark\\editcap.exe\"";
+////        String cmd = "dir";
+////        System.out.println(CommandUtil.executeCmd(cmd));
+//        Runtime.getRuntime().exec(cmd);
+        extract("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\timestamp.txt","D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\com.vkontakte.android.pcap");
     }
 
 }

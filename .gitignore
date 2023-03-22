@@ -2,7 +2,4 @@
 /target/
 /output/
 /change.sh
-/CICFlowMeter-4.0/bin/logs/debug
-/logs/debug
-/CICFlowMeter-4.0/bin/logs/info.log
-/logs/info.log
+/CICFlowMeter-4.0/bin/logs/

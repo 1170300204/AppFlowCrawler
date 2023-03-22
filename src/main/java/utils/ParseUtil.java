@@ -19,6 +19,8 @@ public class ParseUtil {
     public static Logger log = LoggerFactory.getLogger(ParseUtil.class);
 
     public static final String EDITCAP_PATH = "\"C:\\Program Files\\Wireshark\\editcap.exe\"";
+    public static final String CICFLOWMETER_PATH = "\"D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\CICFlowMeter-4.0\\bin\\cfm.bat\"";
+    public static final String CICFLOWMETER_EXECUTE_PATH =  "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\CICFlowMeter-4.0\\bin";
 
     public static final int VALID_PACKET_COUNT_THRESHOLD = 10;
 
@@ -248,7 +250,7 @@ public class ParseUtil {
         return timestamps;
     }
 
-    public static void extract(String timestampFile, String pcapFile) {
+    public static ArrayList<String> extract(String timestampFile, String pcapFile) {
         ArrayList<String[]> timeStamps = getTimeStamps(timestampFile);
         ArrayList<String> outputFiles = new ArrayList<>();
         for (String[] cols : timeStamps) {
@@ -264,8 +266,15 @@ public class ParseUtil {
             System.out.println(cmd);
             CommandUtil.executeCmdNormal(cmd);
         }
-        System.out.println(outputFiles);
+//        System.out.println(outputFiles);
+        return outputFiles;
+    }
 
+    public static String cicFlowMeter(String pcapFIle, String csvFIlePath) {
+        String cmd = CICFLOWMETER_PATH + " \"" + pcapFIle + "\" \"" + csvFIlePath + "\"";
+        CommandUtil.executeWithPath(cmd, CICFLOWMETER_EXECUTE_PATH);
+        int i = pcapFIle.lastIndexOf("\\");
+        return csvFIlePath + pcapFIle.substring(i) + "_Flow.csv";
     }
 
     public static void test() {
@@ -301,19 +310,14 @@ public class ParseUtil {
         System.out.println(ParseUtil.getFlowFeatureCosineSimilarity(feature6,feature3));
     }
 
-
-
     public static void main(String[] args) throws IOException {
 //        ParseUtil.test();
 //        ParseUtil.buildMultiFlow(System.getProperty("user.dir") + File.separator + "csv" + File.separator);
-        //todo
-//        ArrayList<String[]> timeStamps = getTimeStamps("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\timestamp.txt");
-//        String cmd = "\"C:\\Program Files\\Wireshark\\editcap.exe\" -A \"" + timeStamps.get(0)[0] + "\" -B \"" + timeStamps.get(0)[1] + "\" \"D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\com.vkontakte.android.pcap\" \"D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\" + timeStamps.get(0)[2] + ".pcap\"";
-////        String cmd = "\"C:\\Program Files\\Wireshark\\editcap.exe\"";
-////        String cmd = "dir";
-////        System.out.println(CommandUtil.executeCmd(cmd));
-//        Runtime.getRuntime().exec(cmd);
-        extract("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\timestamp.txt","D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\com.vkontakte.android.pcap");
+        //todo 多流提取与筛选
+//        ArrayList<String> pcaps = extract("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\timestamp.txt", "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\com.vkontakte.android.pcap");
+        String csvFIle = cicFlowMeter("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\com.vkontakte.android.pcap", "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\csvs");
+        System.out.println(csvFIle);
+        System.out.println(getFlowsFromCsv(new File(csvFIle)));
     }
 
 }

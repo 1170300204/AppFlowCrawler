@@ -91,6 +91,8 @@ public class CommandUtil {
     }
 
     public static void executeCmdNormal(String cmd) {
+        BufferedReader br = null;
+        String res = "";
         try {
             Process p;
             p = Runtime.getRuntime().exec(cmd);
@@ -98,8 +100,35 @@ public class CommandUtil {
             if (0 != exitValue) {
                 log.error("call shell failed. error code is :" + exitValue);
             }
+            br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            String line;
+            StringBuilder output = new StringBuilder();
+            while ((line = br.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+            res = output.toString().trim();
             p.waitFor();
             p.destroy();
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("Fail to execute cmd : " + cmd);
+        } finally {
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        log.info(res);
+    }
+
+    public static void executeWithPath(String cmd, String path) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            pb.directory(new File(path));
+            Process p = pb.start();
         } catch (Exception e) {
             e.printStackTrace();
             log.error("Fail to execute cmd : " + cmd);

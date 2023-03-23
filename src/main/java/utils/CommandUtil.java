@@ -4,10 +4,7 @@ import io.appium.java_client.android.nativekey.AndroidKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.Arrays;
 
 public class CommandUtil {
@@ -129,6 +126,48 @@ public class CommandUtil {
             ProcessBuilder pb = new ProcessBuilder(cmd);
             pb.directory(new File(path));
             Process p = pb.start();
+            final InputStream is1 = p.getInputStream();
+            //获取进城的错误流
+            final InputStream is2 = p.getErrorStream();
+            //启动两个线程，一个线程负责读标准输出流，另一个负责读标准错误流
+            new Thread(() -> {
+                BufferedReader br1 = new BufferedReader(new InputStreamReader(is1));
+                try {
+                    String line1 = null;
+                    while ((line1 = br1.readLine()) != null) {
+                        if (line1 != null){}
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                finally{
+                    try {
+                        is1.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+            new Thread(() -> {
+                BufferedReader br2 = new  BufferedReader(new  InputStreamReader(is2));
+                try {
+                    String line2 = null ;
+                    while ((line2 = br2.readLine()) !=  null ) {
+                        if (line2 != null){}
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                finally{
+                    try {
+                        is2.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+            p.waitFor();
+            p.destroy();
         } catch (Exception e) {
             e.printStackTrace();
             log.error("Fail to execute cmd : " + cmd);

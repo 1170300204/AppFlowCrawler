@@ -6,12 +6,8 @@ import flow.FlowFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -310,14 +306,40 @@ public class ParseUtil {
         System.out.println(ParseUtil.getFlowFeatureCosineSimilarity(feature6,feature3));
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
 //        ParseUtil.test();
 //        ParseUtil.buildMultiFlow(System.getProperty("user.dir") + File.separator + "csv" + File.separator);
-        //todo 多流提取与筛选
-//        ArrayList<String> pcaps = extract("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\timestamp.txt", "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\com.vkontakte.android.pcap");
-        String csvFIle = cicFlowMeter("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\com.vkontakte.android.pcap", "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\csvs");
-        System.out.println(csvFIle);
-        System.out.println(getFlowsFromCsv(new File(csvFIle)));
+        //todo 多流提取\筛选\存储
+        String timestampFile = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\timestamp.txt";
+        String pcapFIle = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\com.vkontakte.android.pcap";
+        String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\csvs";
+        ArrayList<String> pcaps = extract(timestampFile, pcapFIle);
+        File csvPathFIle = new File(csvPath);
+        if (!csvPathFIle.exists()) {
+            csvPathFIle.mkdirs();
+        }
+        ArrayList<String> csvs = new ArrayList<>();
+        for (String pcap : pcaps) {
+            String csv = cicFlowMeter(pcap, csvPath);
+            csvs.add(csv);
+            log.info("Extract csv : " + csv);
+        }
+        for (String csvString : csvs) {
+            List<BasicFlow> flows;
+            File csv = new File(csvString);
+            if (csv.exists() && csv.canRead()) {
+                flows = getValidFlowsFromCsv(csv);
+                if (flows.size() == 0) {
+                    continue;
+                }
+                int fromDep = Integer.parseInt(String.valueOf(csvString.charAt(csvString.length()-17)));
+                int toDep = Integer.parseInt(String.valueOf(csvString.charAt(csvString.length()-15)));
+                System.out.println("From " + fromDep + " To " + toDep + " : " +flows);
+                System.out.println("==============================");
+
+                //todo 存储数据库
+            }
+        }
     }
 
 }

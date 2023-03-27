@@ -8,15 +8,24 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class ParseUtil {
     public static Logger log = LoggerFactory.getLogger(ParseUtil.class);
 
+    public static final String PACKAGE_NAME = "com.vkontakte.android";
+
+    public static final String PROJECT_PATH = System.getProperty("user.dir") + File.separator;
     public static final String EDITCAP_PATH = "\"C:\\Program Files\\Wireshark\\editcap.exe\"";
-    public static final String CICFLOWMETER_PATH = "\"D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\CICFlowMeter-4.0\\bin\\cfm.bat\"";
-    public static final String CICFLOWMETER_EXECUTE_PATH =  "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\CICFlowMeter-4.0\\bin";
+    public static final String CICFLOWMETER_PATH = "\"" + PROJECT_PATH + "CICFlowMeter-4.0\\bin\\cfm.bat\"";
+    public static final String CICFLOWMETER_EXECUTE_PATH =  PROJECT_PATH + "CICFlowMeter-4.0\\bin";
+    public static final String SNI_PY_PATH = "\"" + PROJECT_PATH + "dnsPyTools\\dns.py\"";
+
+    public static final Map<String, String> SNI = new HashMap<>();
+
 
     public static final int VALID_PACKET_COUNT_THRESHOLD = 10;
 
@@ -62,6 +71,7 @@ public class ParseUtil {
                 flow.setProtocol(Integer.parseInt(flowData[5]));
                 SimpleDateFormat format = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss a");
                 flow.setTimestamp(format.parse(flowData[6]));
+                flow.setServerHost(SNI.get(flow.getDstIp().trim()));
                 FlowFeature feature = new FlowFeature();
                 feature.setTotalPktMaxLength(Double.parseDouble(flowData[45]));
                 feature.setTotalPktMinLength(Double.parseDouble(flowData[44]));
@@ -246,7 +256,7 @@ public class ParseUtil {
         return timestamps;
     }
 
-    public static ArrayList<String> extract(String timestampFile, String pcapFile) {
+    public static ArrayList<String> splitPcap(String timestampFile, String pcapFile) {
         ArrayList<String[]> timeStamps = getTimeStamps(timestampFile);
         ArrayList<String> outputFiles = new ArrayList<>();
         for (String[] cols : timeStamps) {
@@ -259,7 +269,7 @@ public class ParseUtil {
             }
             String cmd = EDITCAP_PATH + " -A \"" + cols[0] + "\" -B \"" + cols[1]+ "\" \"" + pcapFile + "\" \"" + outputFile + "\"";
             outputFiles.add(outputFile);
-            System.out.println(cmd);
+//            System.out.println(cmd);
             CommandUtil.executeCmdNormal(cmd);
         }
 //        System.out.println(outputFiles);
@@ -271,6 +281,135 @@ public class ParseUtil {
         CommandUtil.executeWithPath(cmd, CICFLOWMETER_EXECUTE_PATH);
         int i = pcapFIle.lastIndexOf("\\");
         return csvFIlePath + pcapFIle.substring(i) + "_Flow.csv";
+    }
+
+    public static void getSNI(String pcapFile, String sniPath) {
+        String cmd = "python " + SNI_PY_PATH + " \"" + pcapFile + "\" \"" + sniPath + "\"";
+        CommandUtil.executeCmdNormal(cmd);
+        BufferedReader reader = null;
+        String temp = null;
+        try {
+            File sniFile = new File(sniPath);
+            reader = new BufferedReader(new FileReader(sniFile));
+            while ((temp=reader.readLine())!=null) {
+                String[] cols = temp.split("\t");
+                SNI.put(cols[0].trim(), cols[1].trim());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void storeDB(List<BasicFlow> flows, int fromDep, int toDep, String tag) throws SQLException {
+        //todo 存储数据库
+        int appId = -1;
+        ResultSet rs_app = DBUtil.doQuery("SELECT * FROM " + DBUtil.APP_TABLE + " WHERE packageName = \"" + PACKAGE_NAME + "\"");
+        if(!rs_app.next()) {
+            String sql = "INSERT INTO " + DBUtil.APP_TABLE + " (`packageName`) VALUES ('" + PACKAGE_NAME + "');";
+            DBUtil.doUpdate(sql);
+            log.info("New Package Create : " + PACKAGE_NAME);
+            rs_app = DBUtil.doQuery("SELECT * FROM " + DBUtil.APP_TABLE + " WHERE packageName = \"" + PACKAGE_NAME + "\"");
+            if (rs_app.next()){
+                appId = rs_app.getInt("appId");
+                log.info("SUCCESS");
+            } else
+                log.error("Fail");
+        } else {
+            log.info("Package : " + PACKAGE_NAME + " already exists int DB. Update data.");
+            appId = rs_app.getInt("appId");
+        }
+        if (appId < 0) {
+            log.error("Fail to check App ID, Return ...");
+            return;
+        }
+        log.info("App ID in DB is " + appId);
+
+        String fromDep_sql = "INSERT INTO " + DBUtil.DEPTH_TABLE + " (`depth`,`appId`) SELECT " + fromDep + "," + appId
+                + " FROM DUAL WHERE NOT EXISTS (SELECT * FROM " + DBUtil.DEPTH_TABLE + " where depth = " + fromDep + " and appId = " + appId + ")";
+        String toDep_sql = "INSERT INTO " + DBUtil.DEPTH_TABLE + " (`depth`,`appId`) SELECT " + toDep + "," + appId
+                + " FROM DUAL WHERE NOT EXISTS (SELECT * FROM " + DBUtil.DEPTH_TABLE + " where depth = " + toDep + " and appId = " + appId + ")";
+        if(DBUtil.doUpdate(fromDep_sql)>=0) {
+            log.info("FromDep : " + fromDep);
+        } else {
+            log.error("Fail to Habdle FromDep, Return ...");
+            return;
+        }
+        if(DBUtil.doUpdate(toDep_sql)>=0) {
+            log.info("ToDep : " + toDep);
+        } else {
+            log.error("Fail to Habdle ToDep, Return ...");
+            return;
+        }
+
+        int contextId = -1;
+        String context_insert_sql = "INSERT INTO " + DBUtil.CONTEXT_TABLE + " (`contextId`,`depthFrom`, `depthTo`, `tag`, `appId`) SELECT null," + fromDep + "," + toDep +",'" + tag +"'," + appId
+                + "  FROM DUAL WHERE NOT EXISTS (SELECT * FROM " + DBUtil.CONTEXT_TABLE + " WHERE depthFrom=" + fromDep + " and depthTo=" + toDep + " and tag='" + tag + "' and appId=" + appId + ")";
+        if (DBUtil.doUpdate(context_insert_sql) > 0) {
+            String context_query_sql = "SELECT LAST_INSERT_ID() FROM " + DBUtil.CONTEXT_TABLE;
+            ResultSet context_query_rs = DBUtil.doQuery(context_query_sql);
+            if (context_query_rs.next()){
+                contextId = context_query_rs.getInt(1);
+            }
+            log.info("New Context Create :" + tag);
+        } else {
+            String context_query_sql = "SELECT `contextId` FROM " + DBUtil.CONTEXT_TABLE + " WHERE depthFrom=" + fromDep + " and depthTo=" + toDep + " and tag='" + tag + "' and appId=" + appId;
+            ResultSet context_query_rs = DBUtil.doQuery(context_query_sql);
+            if (context_query_rs.next()){
+                contextId = context_query_rs.getInt(1);
+            }
+            log.info("Context : " + tag + " already exists int DB. Update data.");
+        }
+        if (contextId < 0) {
+            log.error("Fail to check Context ID, Return ...");
+            return;
+        }
+        log.info("Context ID in DB is " + contextId);
+
+
+        for (BasicFlow flow : flows) {
+            
+        }
+
+
+//        int size = flows.size();
+//        if (size == 1) {
+//
+//        }
+
+    }
+
+    public static void extract(String timestampFile, String pcapFIle, String csvPath) {
+        ArrayList<String> pcaps = splitPcap(timestampFile, pcapFIle);
+        File csvPathFIle = new File(csvPath);
+        if (!csvPathFIle.exists()) {
+            csvPathFIle.mkdirs();
+        }
+        ArrayList<String> csvs = new ArrayList<>();
+        for (String pcap : pcaps) {
+            String csv = cicFlowMeter(pcap, csvPath);
+            csvs.add(csv);
+            log.info("Extract csv : " + csv);
+        }
+        for (String csvString : csvs) {
+            List<BasicFlow> flows;
+            File csv = new File(csvString);
+            if (csv.exists() && csv.canRead()) {
+                flows = getValidFlowsFromCsv(csv);
+                if (flows.size() == 0) {
+                    continue;
+                }
+                int fromDep = Integer.parseInt(String.valueOf(csvString.charAt(csvString.length()-17)));
+                int toDep = Integer.parseInt(String.valueOf(csvString.charAt(csvString.length()-15)));
+                String tag = csv.getName().split("\\.")[0];
+                log.info("From " + fromDep + " To " + toDep + " : " +flows);
+                log.info("==============================");
+                try {
+                    storeDB(flows, fromDep, toDep, tag);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     public static void test() {
@@ -313,33 +452,25 @@ public class ParseUtil {
         String timestampFile = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\timestamp.txt";
         String pcapFIle = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\com.vkontakte.android.pcap";
         String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\csvs";
-        ArrayList<String> pcaps = extract(timestampFile, pcapFIle);
-        File csvPathFIle = new File(csvPath);
-        if (!csvPathFIle.exists()) {
-            csvPathFIle.mkdirs();
-        }
-        ArrayList<String> csvs = new ArrayList<>();
-        for (String pcap : pcaps) {
-            String csv = cicFlowMeter(pcap, csvPath);
-            csvs.add(csv);
-            log.info("Extract csv : " + csv);
-        }
-        for (String csvString : csvs) {
-            List<BasicFlow> flows;
-            File csv = new File(csvString);
-            if (csv.exists() && csv.canRead()) {
-                flows = getValidFlowsFromCsv(csv);
-                if (flows.size() == 0) {
-                    continue;
-                }
-                int fromDep = Integer.parseInt(String.valueOf(csvString.charAt(csvString.length()-17)));
-                int toDep = Integer.parseInt(String.valueOf(csvString.charAt(csvString.length()-15)));
-                System.out.println("From " + fromDep + " To " + toDep + " : " +flows);
-                System.out.println("==============================");
+        String sniPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\sni.txt";
+        getSNI(pcapFIle, sniPath);
+        //        extract(timestampFile, pcapFIle, csvPath);
+        SNI.forEach((k,v)-> System.out.println(k + " " + v));
 
-                //todo 存储数据库
-            }
-        }
+
+        //del
+        File csv = new File("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\csvs\\00000000-0000-001e-ffff-ffff000001f4_3_1.pcap_Flow.csv");
+        List<BasicFlow> flows = getValidFlowsFromCsv(csv);
+        flows.forEach(System.out::println);
+
+//        int fromDep = Integer.parseInt(String.valueOf(csv.toString().charAt(csv.toString().length()-17)));
+//        int toDep = Integer.parseInt(String.valueOf(csv.toString().charAt(csv.toString().length()-15)));
+//        String tag = csv.getName().split("\\.")[0];
+//        storeDB(flows, fromDep, toDep, tag);
+
+
+        //del
+
     }
 
 }

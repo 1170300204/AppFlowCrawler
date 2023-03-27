@@ -12,6 +12,14 @@ public class DBUtil {
     private static final String username = "root";
     private static final String password = "111111";
 
+    public static final String DATABASE = "appflowcrawler";
+    public static final String APP_TABLE = DATABASE + ".apps";
+    public static final String DEPTH_TABLE = DATABASE + ".depth";
+    public static final String CONTEXT_TABLE = DATABASE + ".context";
+    public static final String FLOWRELATION_TABLE = DATABASE + ".flowrelation";
+    public static final String FLOWS_TABLE = DATABASE + ".flows";
+
+
     private static Connection connection = null;
 
     public static void initialize() {
@@ -24,7 +32,7 @@ public class DBUtil {
 
     }
 
-    public static ResultSet doSQL(String sql) {
+    public static ResultSet doQuery(String sql) {
         Connection con = getConnection();
         ResultSet res = null;
         Statement statement = null;
@@ -38,6 +46,19 @@ public class DBUtil {
         return res;
     }
 
+    public static int doUpdate(String sql) {
+        Connection con = getConnection();
+        int res = -1;
+        Statement statement = null;
+        try {
+            statement = connection.createStatement();
+            res = statement.executeUpdate(sql);
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("Fail to execute sql : " + sql);
+        }
+        return res;
+    }
 
     public static Connection getConnection() {
         if (connection!=null)
@@ -55,7 +76,7 @@ public class DBUtil {
     public static void main(String[] args) throws Exception {
         DBUtil.initialize();
         String sql = "Select * from test;";
-        ResultSet resultSet = DBUtil.doSQL(sql);
+        ResultSet resultSet = DBUtil.doQuery(sql);
         while(resultSet.next()){
             System.out.println(resultSet.getInt("id") + " : " + resultSet.getString("text"));
         }

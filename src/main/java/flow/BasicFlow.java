@@ -1,5 +1,6 @@
 package flow;
 
+import java.sql.Timestamp;
 import java.util.Date;
 
 public class BasicFlow {
@@ -11,14 +12,14 @@ public class BasicFlow {
     private String dstIp;
     private int dstPort;
     private int protocol;
-    private Date timestamp;
+    private Timestamp timestamp;
 
     private FlowFeature feature;
 
     public BasicFlow() {
     }
 
-    public BasicFlow(long id, String serverHost, String srcIp, int srcPort, String dstIp, int dstPort, int protocol, Date timestamp, FlowFeature feature) {
+    public BasicFlow(long id, String serverHost, String srcIp, int srcPort, String dstIp, int dstPort, int protocol, Timestamp timestamp, FlowFeature feature) {
         this.id = id;
         this.serverHost = serverHost;
         this.srcIp = srcIp;
@@ -30,7 +31,7 @@ public class BasicFlow {
         this.feature = feature;
     }
 
-    public BasicFlow(String serverHost, String dstIp, int dstPort, int protocol, Date timestamp, FlowFeature feature) {
+    public BasicFlow(String serverHost, String dstIp, int dstPort, int protocol, Timestamp timestamp, FlowFeature feature) {
         this.serverHost = serverHost;
         this.dstIp = dstIp;
         this.dstPort = dstPort;
@@ -107,7 +108,7 @@ public class BasicFlow {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(Timestamp timestamp) {
         this.timestamp = timestamp;
     }
 

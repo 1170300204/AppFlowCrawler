@@ -559,6 +559,30 @@ public class ParseUtil {
         }
     }
 
+
+    //多流匹配
+    //匹配成功返回对应多流的toDepth 否则返回-1
+    public static int match(List<BasicFlow> matchFlows, int fromDepth, int appId) throws SQLException {
+        String multiFlow_query_sql = "SELECT * FROM " + DBUtil.CONTEXT_TABLE + "WHERE `depthFrom` = " + fromDepth + " and `appId` = " + appId;
+        ResultSet multiFlow_query_rs = DBUtil.doQuery(multiFlow_query_sql);
+        Map<Integer, Integer> multiFlows = new HashMap<>();
+        while (multiFlow_query_rs.next()) {
+            multiFlows.put(multiFlow_query_rs.getInt("contextId"),multiFlow_query_rs.getInt("depthTo"));
+        }
+        if (multiFlows.size()==0)   return -1;
+        for (int mulFLowId : multiFlows.keySet()) {
+            if(getMultiFLowSimilarity(matchFlows,mulFLowId) >= 0.9) {
+                return multiFlows.get(mulFLowId);
+            }
+        }
+        return -1;
+    }
+
+    public static double getMultiFLowSimilarity(List<BasicFlow> matchFlows, int multiFlowId) {
+        //todo
+        return 0;
+    }
+
     public static void test() {
         FlowFeature feature1 = new FlowFeature(2840,0,560.255639097744,702.029586423657,65,67,68557,5957,1460,2840,0,0,1054.72307692307,88.9104477611939,584.501831361874,428.158450255923);
         System.out.println(feature1);

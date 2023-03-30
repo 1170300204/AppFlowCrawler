@@ -3,6 +3,7 @@ package utils;
 import enums.PackageStatus;
 import io.appium.java_client.MobileElement;
 import org.openqa.selenium.By;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -305,16 +306,21 @@ public class CrawlUtil {
                     break;
                 }
                 //todo 记录按钮点击的前后深度变化,抽象点击元素为一个标识符
+
+                String resourceId = element.getAttribute("resourceId");
+                String des = element.getAttribute("contentDescription");//name
+
                 Timestamp startTime = getTimeStamp();
                 currentXml = clickElement(element, currentXml);
                 Timestamp endTime = getTimeStamp();
                 afterPageStructure = getPageStructure(currentXml,clickXpath);
 
+
                 //todo 记录点击信息
                 if (pageMap.containsKey(afterPageStructure)) {
-                    addTimeStamp(startTime, endTime, element.getId(), currentDepth, pageMap.get(afterPageStructure));
+                    addTimeStamp(startTime, endTime, resourceId+"_"+des, currentDepth, pageMap.get(afterPageStructure));
                 } else {
-                    addTimeStamp(startTime, endTime, element.getId(), currentDepth, currentDepth+1);
+                    addTimeStamp(startTime, endTime, resourceId+"_"+des, currentDepth, currentDepth+1);
                 }
 
 

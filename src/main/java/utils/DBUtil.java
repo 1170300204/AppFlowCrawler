@@ -1,5 +1,7 @@
 package utils;
 
+import flow.BasicFlow;
+import flow.FlowFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -82,5 +84,37 @@ public class DBUtil {
         }
     }
 
+    //todo test
+    public static BasicFlow getFLowById(int flowId) throws SQLException {
+        String flow_query_sql = "SELECT * FROM " + DBUtil.FLOWS_TABLE + " WHERE `flowId` = " + flowId;
+        ResultSet flow_query_rs = DBUtil.doQuery(flow_query_sql);
+        BasicFlow flow = null;
+        if (flow_query_rs.next()) {
+            flow = new BasicFlow();
+            flow.setId(flow_query_rs.getInt("flowId"));
+            flow.setServerHost(flow_query_rs.getString("hostName"));
+            flow.setDstPort(flow_query_rs.getInt("port"));
+            flow.setTimestamp(flow_query_rs.getTimestamp("timestamp"));
+            FlowFeature feature = new FlowFeature();
+            feature.setTotalPktMaxLength(flow_query_rs.getDouble("totalPktMaxLength"));
+            feature.setTotalPktMinLength(flow_query_rs.getDouble("totalPktMinLength"));
+            feature.setTotalPktMeanLength(flow_query_rs.getDouble("totalPktMeanLength"));
+            feature.setTotalPktStdLength(flow_query_rs.getDouble("totalPktStdLength"));
+            feature.setFwdPktCount(flow_query_rs.getLong("fwdPktCount"));
+            feature.setBwdPktCount(flow_query_rs.getLong("bwdPktCount"));
+            feature.setFwdPktTotalLength(flow_query_rs.getDouble("fwdPktTotalLength"));
+            feature.setFwdPktMaxLength(flow_query_rs.getDouble("fwdPktMaxLength"));
+            feature.setFwdPktMinLength(flow_query_rs.getDouble("fwdPktMinLength"));
+            feature.setFwdPktMeanLength(flow_query_rs.getDouble("fwdPktMeanLength"));
+            feature.setFwdPktStdLength(flow_query_rs.getDouble("fwdPktStdLength"));
+            feature.setBwdPktTotalLength(flow_query_rs.getDouble("bwdPktTotalLength"));
+            feature.setBwdPktMaxLength(flow_query_rs.getDouble("bwdPktMaxLength"));
+            feature.setBwdPktMinLength(flow_query_rs.getDouble("bwdPktMinLength"));
+            feature.setBwdPktMeanLength(flow_query_rs.getDouble("bwdPktMeanLength"));
+            feature.setBwdPktStdLength(flow_query_rs.getDouble("bwdPktStdLength"));
+            flow.setFeature(feature);
+        }
+        return flow;
+    }
 
 }

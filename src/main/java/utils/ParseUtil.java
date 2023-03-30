@@ -2,6 +2,7 @@ package utils;
 
 import com.csvreader.CsvReader;
 import flow.BasicFlow;
+import flow.FLowRelation;
 import flow.FlowFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -559,7 +560,8 @@ public class ParseUtil {
         }
     }
 
-
+    //todo 传入的流需要预先处理好host(SNI)信息以进行后续流的匹配
+    //todo test
     //多流匹配
     //匹配成功返回对应多流的toDepth 否则返回-1
     public static int match(List<BasicFlow> matchFlows, int fromDepth, int appId) throws SQLException {
@@ -578,10 +580,69 @@ public class ParseUtil {
         return -1;
     }
 
-    public static double getMultiFLowSimilarity(List<BasicFlow> matchFlows, int multiFlowId) {
-        //todo
-        return 0;
+    //todo test
+    public static double getMultiFLowSimilarity(List<BasicFlow> matchFlows, int multiFlowId) throws SQLException {
+        String flow_rel_query_sql = "SELECT * FROM " + DBUtil.FLOWRELATION_TABLE + " WHERE `multiflowId` = " + multiFlowId;
+        ResultSet flow_rel_query_rs = DBUtil.doQuery(flow_rel_query_sql);
+        List<FLowRelation> frs = new ArrayList<>();
+        while(flow_rel_query_rs.next()){
+            FLowRelation fr = new FLowRelation();
+            fr.setRelId(flow_rel_query_rs.getInt("relId"));
+            fr.setMultiflowId(flow_rel_query_rs.getInt("multiflowId"));
+            fr.setFlowId1(flow_rel_query_rs.getInt("flowId1"));
+            fr.setFlowId2(flow_rel_query_rs.getInt("flowId2"));
+            fr.setPO(flow_rel_query_rs.getBoolean("isPO"));
+            fr.setPOtype(flow_rel_query_rs.getBoolean("POtype"));
+            fr.setFlowcount1(flow_rel_query_rs.getInt("flow1count"));
+            fr.setFlowcount2(flow_rel_query_rs.getInt("flow2count"));
+            frs.add(fr);
+        }
+        if (frs.isEmpty())  return 0;
+
+        double res = 0;
+        int relCount = 0;
+
+        for (FLowRelation fr : frs) {
+            double temp;
+            int flowId1 = fr.getFlowId1();
+            int flowId2 = fr.getFlowId2();
+            BasicFlow flow1 = DBUtil.getFLowById(flowId1);
+            BasicFlow flow2 = DBUtil.getFLowById(flowId2);
+            if (null == flow1 || null == flow2) {
+                continue;
+            }
+
+            BasicFlow mflow1 = null;
+            Optional<BasicFlow> mflow1_ops = matchFlows.stream().filter(item -> item.getServerHost().equals(flow1.getServerHost()) && item.getDstPort() == flow1.getDstPort()).findFirst();
+            if (mflow1_ops.isPresent()) {
+                mflow1 = mflow1_ops.get();
+            }
+            BasicFlow mflow2 = null;
+            Optional<BasicFlow> mflow2_ops = matchFlows.stream().filter(item -> item.getServerHost().equals(flow2.getServerHost()) && item.getDstPort() == flow2.getDstPort()).findFirst();
+            if (mflow2_ops.isPresent()) {
+                mflow2 = mflow2_ops.get();
+            }
+            if (null== mflow1 || null == mflow2) {
+                continue;
+            }
+            relCount++;
+            double cs1 = getFlowFeatureCosineSimilarity(flow1.getFeature(), mflow1.getFeature());
+            double cs2 = getFlowFeatureCosineSimilarity(flow2.getFeature(), mflow2.getFeature());
+            if (fr.isPO) {
+                if (fr.POtype == mflow1.getTimestamp().before(mflow2.getTimestamp())) {
+                    res += cs1*cs2;
+                } else {
+                    res += 0;
+                }
+            } else {
+                res += cs1 * (fr.flowcount1> fr.flowcount2? (double)fr.flowcount2/fr.flowcount1 : (double)fr.flowcount1/fr.flowcount2) * cs2;
+            }
+        }
+        return relCount==0?0:res/relCount;
     }
+
+
+
 
     public static void test() {
         FlowFeature feature1 = new FlowFeature(2840,0,560.255639097744,702.029586423657,65,67,68557,5957,1460,2840,0,0,1054.72307692307,88.9104477611939,584.501831361874,428.158450255923);
@@ -619,7 +680,6 @@ public class ParseUtil {
     public static void main(String[] args) throws Exception {
 //        ParseUtil.test();
 //        ParseUtil.buildMultiFlow(System.getProperty("user.dir") + File.separator + "csv" + File.separator);
-        //todo 多流提取\筛选\存储
         String timestampFile = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\timestamp.txt";
         String pcapFIle = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\com.vkontakte.android.pcap";
         String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\csvs";

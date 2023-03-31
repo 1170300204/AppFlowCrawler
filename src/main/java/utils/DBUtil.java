@@ -84,7 +84,6 @@ public class DBUtil {
         }
     }
 
-    //todo test
     public static BasicFlow getFLowById(int flowId) throws SQLException {
         String flow_query_sql = "SELECT * FROM " + DBUtil.FLOWS_TABLE + " WHERE `flowId` = " + flowId;
         ResultSet flow_query_rs = DBUtil.doQuery(flow_query_sql);

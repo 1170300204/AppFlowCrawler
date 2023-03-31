@@ -561,11 +561,10 @@ public class ParseUtil {
     }
 
     //todo 传入的流需要预先处理好host(SNI)信息以进行后续流的匹配
-    //todo test
     //多流匹配
     //匹配成功返回对应多流的toDepth 否则返回-1
     public static int match(List<BasicFlow> matchFlows, int fromDepth, int appId) throws SQLException {
-        String multiFlow_query_sql = "SELECT * FROM " + DBUtil.CONTEXT_TABLE + "WHERE `depthFrom` = " + fromDepth + " and `appId` = " + appId;
+        String multiFlow_query_sql = "SELECT * FROM " + DBUtil.CONTEXT_TABLE + " WHERE `depthFrom` = " + fromDepth + " and `appId` = " + appId;
         ResultSet multiFlow_query_rs = DBUtil.doQuery(multiFlow_query_sql);
         Map<Integer, Integer> multiFlows = new HashMap<>();
         while (multiFlow_query_rs.next()) {
@@ -574,13 +573,13 @@ public class ParseUtil {
         if (multiFlows.size()==0)   return -1;
         for (int mulFLowId : multiFlows.keySet()) {
             if(getMultiFLowSimilarity(matchFlows,mulFLowId) >= 0.9) {
+                log.info("Success to match multiflow[" + mulFLowId + "], Jump to depth " + multiFlows.get(mulFLowId));
                 return multiFlows.get(mulFLowId);
             }
         }
         return -1;
     }
 
-    //todo test
     public static double getMultiFLowSimilarity(List<BasicFlow> matchFlows, int multiFlowId) throws SQLException {
         String flow_rel_query_sql = "SELECT * FROM " + DBUtil.FLOWRELATION_TABLE + " WHERE `multiflowId` = " + multiFlowId;
         ResultSet flow_rel_query_rs = DBUtil.doQuery(flow_rel_query_sql);
@@ -625,6 +624,7 @@ public class ParseUtil {
             if (null== mflow1 || null == mflow2) {
                 continue;
             }
+            log.info("Match flow relation[multiflowId = " + fr.getMultiflowId() + "] : flow1[" + flow1.getId() + "]  flow2[" + flow2.getId() + "]");
             relCount++;
             double cs1 = getFlowFeatureCosineSimilarity(flow1.getFeature(), mflow1.getFeature());
             double cs2 = getFlowFeatureCosineSimilarity(flow2.getFeature(), mflow2.getFeature());

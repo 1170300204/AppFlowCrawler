@@ -49,12 +49,11 @@ public class Parser {
 
     public static void main(String[] args) {
         //todo POtype calculate
-        parse("com.vkontakte.android-2023-04-03_15-17-53");
-        parse("com.vkontakte.android-2023-04-03_15-56-07");
-        parse("com.vkontakte.android-2023-04-03_16-00-40");
-        parse("com.vkontakte.android-2023-04-03_16-24-17");
-
-//        parse("");
+//        parse("com.vkontakte.android-2023-04-03_15-17-53");
+//        parse("com.vkontakte.android-2023-04-03_15-56-07");
+//        parse("com.vkontakte.android-2023-04-03_16-00-40");
+//        parse("com.vkontakte.android-2023-04-03_16-24-17");
+        parse("com.vkontakte.android-2023-04-03_19-54-56");
 //        match();
     }
 

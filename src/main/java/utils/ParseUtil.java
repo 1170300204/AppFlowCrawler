@@ -616,7 +616,22 @@ public class ParseUtil {
             fr.setFlowcount2(flow_rel_query_rs.getInt("flow2count"));
             frs.add(fr);
         }
-        if (frs.isEmpty())  return 0;
+        if (frs.isEmpty())  {
+            String flow_query_sql = "SELECT * FROM " + DBUtil.FLOWS_TABLE + " WHERE `multiFlowId` = " + multiFlowId;
+            ResultSet flow_query_rs = DBUtil.doQuery(flow_query_sql);
+            BasicFlow flow = null;
+            if(flow_query_rs.next()) {
+                flow = DBUtil.getFLowById(flow_query_rs.getInt("flowId"));
+            }
+            if (flow==null) return 0;
+            double max = 0;
+            for (BasicFlow mflow : matchFlows) {
+                double cs = getFlowFeatureCosineSimilarity(flow.getFeature(), mflow.getFeature());
+                if (cs > max)
+                    max = cs;
+            }
+            return max;
+        }
 
         double res = 0;
         int relCount = 0;

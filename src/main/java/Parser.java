@@ -9,15 +9,14 @@ public class Parser {
 
     public static final Logger log = LoggerFactory.getLogger(Parser.class);
 
-    public static void parse() {
-        String timestampFile = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\timestamp.txt";
-        String pcapFIle = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\com.vkontakte.android.pcap";
-        String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\csvs";
-        String sniPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\sni.txt";
+    public static void parse(String pkgTime) {
+        String timestampFile = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\" + pkgTime + "\\pcaps\\timestamp.txt";
+        String pcapFIle = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\" + pkgTime + "\\pcaps\\com.vkontakte.android.pcap";
+        String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\" + pkgTime + "\\csvs";
+        String sniPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\" + pkgTime + "\\sni.txt";
 
         ParseUtil.getSNI(pcapFIle, sniPath);
         ParseUtil.extract(timestampFile, pcapFIle, csvPath);
-
     }
 
     public static void match(String mPcapFile) {
@@ -49,7 +48,14 @@ public class Parser {
     }
 
     public static void main(String[] args) {
+        //todo POtype calculate
+        parse("com.vkontakte.android-2023-04-03_15-17-53");
+        parse("com.vkontakte.android-2023-04-03_15-56-07");
+        parse("com.vkontakte.android-2023-04-03_16-00-40");
+        parse("com.vkontakte.android-2023-04-03_16-24-17");
 
+//        parse("");
+//        match();
     }
 
 }

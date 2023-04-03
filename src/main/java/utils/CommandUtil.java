@@ -118,7 +118,8 @@ public class CommandUtil {
                 }
             }
         }
-        log.info(res);
+        if (res.length() > 0)
+            log.info(res);
     }
 
     public static void executeWithPath(String cmd, String path) {

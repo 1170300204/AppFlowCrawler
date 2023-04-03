@@ -16,6 +16,8 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ParseUtil {
     public static Logger log = LoggerFactory.getLogger(ParseUtil.class);
@@ -268,14 +270,20 @@ public class ParseUtil {
             File pcap = new File(pcapFile);
             String outputFile;
             if (pcap.exists()) {
-                outputFile = pcap.getParentFile().getAbsolutePath() + File.separator + cols[2] + "_" + cols[3] + "_" + cols[4] + ".pcap";
+                String fileName = cols[2] + "_" + cols[3] + "_" + cols[4];
+                Pattern pattern = Pattern.compile("[\\s\\\\/:\\*\\?\\\"<>\\|]");
+                Matcher matcher = pattern.matcher(fileName);
+                fileName= matcher.replaceAll("_");
+                outputFile = pcap.getParentFile().getAbsolutePath() + File.separator + fileName + ".pcap";
             } else {
                 outputFile = cols[2] + "_" + cols[3] + "_" + cols[4] + ".pcap";
             }
-            String cmd = EDITCAP_PATH + " -A \"" + cols[0] + "\" -B \"" + cols[1]+ "\" \"" + pcapFile + "\" \"" + outputFile + "\"";
+            String cmd = EDITCAP_PATH + " -F libpcap -T ether -A \"" + cols[0] + "\" -B \"" + cols[1]+ "\" \"" + pcapFile + "\" \"" + outputFile + "\"";
+            // -F libpcap -T ether
             outputFiles.add(outputFile);
 //            System.out.println(cmd);
             CommandUtil.executeCmdNormal(cmd);
+            log.info("Split pcap from " +  cols[0] + " to " + cols[1] + " , Output : " + outputFile);
         }
 //        System.out.println(outputFiles);
         return outputFiles;
@@ -283,6 +291,7 @@ public class ParseUtil {
 
     public static String cicFlowMeter(String pcapFIle, String csvFIlePath) {
         String cmd = CICFLOWMETER_PATH + " \"" + pcapFIle + "\" \"" + csvFIlePath + "\"";
+        log.info(cmd);
         CommandUtil.executeWithPath(cmd, CICFLOWMETER_EXECUTE_PATH);
         int i = pcapFIle.lastIndexOf("\\");
         return csvFIlePath + pcapFIle.substring(i) + "_Flow.csv";
@@ -470,9 +479,9 @@ public class ParseUtil {
                     boolean new_potype = mflows.get(i).getTimestamp().before(mflows.get(j).getTimestamp());
                     boolean potype = matches.get(mflows.get(i)).getTimestamp().before(matches.get(mflows.get(j)).getTimestamp());
                     if (new_potype!=potype) {
-                        String flow_rel_po_update_sql = "UPDATE " + DBUtil.FLOWRELATION_TABLE + " SET `isPO` = '0' WHERE ((`flowId1` = " + mflows.get(i).getId() + " and `flowId2` = " + mflows.get(j).getId() + ") or (`flowId1` = " + mflows.get(j).getId() + " and `flowId2` = " + mflows.get(i).getId() + ")) and `multiflowId`=" + contextId + ";";
+                        String flow_rel_po_update_sql = "UPDATE " + DBUtil.FLOWRELATION_TABLE + " SET `isPO` = '0' WHERE ((`flowId1` = " + matches.get(mflows.get(i)).getId() + " and `flowId2` = " + matches.get(mflows.get(j)).getId() + ") or (`flowId1` = " + matches.get(mflows.get(j)).getId() + " and `flowId2` = " + matches.get(mflows.get(i)).getId() + ")) and `multiflowId`=" + contextId + ";";
                         DBUtil.doUpdate(flow_rel_po_update_sql);
-                        log.info("Flow POType Change : flow[id=" + mflows.get(i).getId() + "] and flow[id=" + mflows.get(j).getId() + "]");
+                        log.info("Flow POType Change : flow[id=" + matches.get(mflows.get(i)).getId() + "] and flow[id=" + matches.get(mflows.get(j)).getId() + "]");
                     }
                 }
             }
@@ -546,9 +555,18 @@ public class ParseUtil {
                 if (flows.size() == 0) {
                     continue;
                 }
-                int fromDep = Integer.parseInt(String.valueOf(csvString.charAt(csvString.length()-17)));
-                int toDep = Integer.parseInt(String.valueOf(csvString.charAt(csvString.length()-15)));
-                String tag = csv.getName().split("\\.")[0];
+                int fromDep = -1;
+                int toDep = -1;
+                Pattern pattern = Pattern.compile("(\\d+)_(\\d+).pcap_Flow.csv");
+                Matcher matcher = pattern.matcher(csvString);
+                if (matcher.find()) {
+                    fromDep =Integer.parseInt(matcher.group(1));
+                    toDep = Integer.parseInt(matcher.group(2));
+                } else {
+                    log.error("CSV File name wrong, can not find fromDepth and toDepth : " + csvString);
+                    continue;
+                }
+                String tag = csv.getName().split("\\.pcap")[0];
                 log.info("From " + fromDep + " To " + toDep + " : " +flows);
                 log.info("==============================");
                 try {
@@ -556,6 +574,8 @@ public class ParseUtil {
                 } catch (SQLException e) {
                     e.printStackTrace();
                 }
+            } else {
+                log.error("Fail to read CSV file, Please check if it exit :" + csvString);
             }
         }
     }

@@ -32,6 +32,8 @@ public class ParseUtil {
 
     public static final Map<String, String> SNI = new HashMap<>();
 
+    public static final double MULTIFLOW_SIMILARITY_THRESHOLD = 0.9;
+
 
     public static final int VALID_PACKET_COUNT_THRESHOLD = 10;
 
@@ -583,7 +585,7 @@ public class ParseUtil {
     //todo 传入的流需要预先处理好host(SNI)信息以进行后续流的匹配
     //多流匹配
     //匹配成功返回对应多流的toDepth 否则返回-1
-    public static int match(List<BasicFlow> matchFlows, int fromDepth, int appId) throws SQLException {
+    public static int match(List<BasicFlow> matchFlows, int fromDepth, int appId, boolean flag) throws SQLException {
         String multiFlow_query_sql = "SELECT * FROM " + DBUtil.CONTEXT_TABLE + " WHERE `depthFrom` = " + fromDepth + " and `appId` = " + appId;
         ResultSet multiFlow_query_rs = DBUtil.doQuery(multiFlow_query_sql);
         Map<Integer, Integer> multiFlows = new HashMap<>();
@@ -592,15 +594,17 @@ public class ParseUtil {
         }
         if (multiFlows.size()==0)   return -1;
         for (int mulFLowId : multiFlows.keySet()) {
-            if(getMultiFLowSimilarity(matchFlows,mulFLowId) >= 0.9) {
-                log.info("Success to match multiflow[" + mulFLowId + "], Jump to depth " + multiFlows.get(mulFLowId));
+            double multiFLowSimilarity = getMultiFLowSimilarity(matchFlows, mulFLowId, flag);
+            log.info("Temp multiFLowSimilarity : " + multiFLowSimilarity);
+            if(multiFLowSimilarity >= MULTIFLOW_SIMILARITY_THRESHOLD) {
+                log.info("Success to match multiflow[" + mulFLowId + "], multiFLowSimilarity = " + multiFLowSimilarity + ", Jump to depth " + multiFlows.get(mulFLowId));
                 return multiFlows.get(mulFLowId);
             }
         }
         return -1;
     }
 
-    public static double getMultiFLowSimilarity(List<BasicFlow> matchFlows, int multiFlowId) throws SQLException {
+    public static double getMultiFLowSimilarity(List<BasicFlow> matchFlows, int multiFlowId, boolean flag) throws SQLException {
         String flow_rel_query_sql = "SELECT * FROM " + DBUtil.FLOWRELATION_TABLE + " WHERE `multiflowId` = " + multiFlowId;
         ResultSet flow_rel_query_rs = DBUtil.doQuery(flow_rel_query_sql);
         List<FLowRelation> frs = new ArrayList<>();
@@ -617,20 +621,26 @@ public class ParseUtil {
             frs.add(fr);
         }
         if (frs.isEmpty())  {
-            String flow_query_sql = "SELECT * FROM " + DBUtil.FLOWS_TABLE + " WHERE `multiFlowId` = " + multiFlowId;
-            ResultSet flow_query_rs = DBUtil.doQuery(flow_query_sql);
-            BasicFlow flow = null;
-            if(flow_query_rs.next()) {
-                flow = DBUtil.getFLowById(flow_query_rs.getInt("flowId"));
+            if (matchFlows.size()==1 || flag) {
+                String flow_query_sql = "SELECT * FROM " + DBUtil.FLOWS_TABLE + " WHERE `multiFlowId` = " + multiFlowId;
+                ResultSet flow_query_rs = DBUtil.doQuery(flow_query_sql);
+                BasicFlow flow = null;
+                if(flow_query_rs.next()) {
+                    flow = DBUtil.getFLowById(flow_query_rs.getInt("flowId"));
+                }
+                if (flow==null) return 0;
+                double max = 0;
+                for (BasicFlow mflow : matchFlows) {
+                    double cs = getFlowFeatureCosineSimilarity(flow.getFeature(), mflow.getFeature());
+                    if (cs > max)
+                        max = cs;
+                }
+                return max;
+            } else {
+//                log.info("No flow relation in DB.");
+                return 0;
             }
-            if (flow==null) return 0;
-            double max = 0;
-            for (BasicFlow mflow : matchFlows) {
-                double cs = getFlowFeatureCosineSimilarity(flow.getFeature(), mflow.getFeature());
-                if (cs > max)
-                    max = cs;
-            }
-            return max;
+
         }
 
         double res = 0;
@@ -647,19 +657,45 @@ public class ParseUtil {
             }
 
             BasicFlow mflow1 = null;
-            Optional<BasicFlow> mflow1_ops = matchFlows.stream().filter(item -> item.getServerHost().equals(flow1.getServerHost()) && item.getDstPort() == flow1.getDstPort()).findFirst();
+            Optional<BasicFlow> mflow1_ops = matchFlows.stream().filter(item -> (item.getServerHost().equals(flow1.getServerHost()) || item.getDstIp().equals(flow1.getDstIp())) && item.getDstPort() == flow1.getDstPort()).findFirst();
             if (mflow1_ops.isPresent()) {
                 mflow1 = mflow1_ops.get();
             }
             BasicFlow mflow2 = null;
-            Optional<BasicFlow> mflow2_ops = matchFlows.stream().filter(item -> item.getServerHost().equals(flow2.getServerHost()) && item.getDstPort() == flow2.getDstPort()).findFirst();
+            Optional<BasicFlow> mflow2_ops = matchFlows.stream().filter(item -> (item.getServerHost().equals(flow2.getServerHost()) || item.getDstIp().equals(flow1.getDstIp())) && item.getDstPort() == flow2.getDstPort()).findFirst();
             if (mflow2_ops.isPresent()) {
                 mflow2 = mflow2_ops.get();
             }
+
+            if (mflow1 == null) {
+                double max = 0;
+                BasicFlow tFlow = null;
+                for (BasicFlow flow : matchFlows) {
+                    double fcs = getFlowFeatureCosineSimilarity(flow1.getFeature(), flow.getFeature());
+                    if (fcs>max) {
+                        max = fcs;
+                        tFlow = flow;
+                    }
+                }
+                mflow1 = tFlow;
+            }
+            if (mflow2 == null) {
+                double max = 0;
+                BasicFlow tFlow = null;
+                for (BasicFlow flow : matchFlows) {
+                    double fcs = getFlowFeatureCosineSimilarity(flow2.getFeature(), flow.getFeature());
+                    if (fcs>max) {
+                        max = fcs;
+                        tFlow = flow;
+                    }
+                }
+                mflow2 = tFlow;
+            }
+
             if (null== mflow1 || null == mflow2) {
                 continue;
             }
-            log.info("Match flow relation[multiflowId = " + fr.getMultiflowId() + "] : flow1[" + flow1.getId() + "]  flow2[" + flow2.getId() + "]");
+//            log.info("Match flow relation[multiflowId = " + fr.getMultiflowId() + "] : flow1[" + flow1.getId() + "]  flow2[" + flow2.getId() + "]");
             relCount++;
             double cs1 = getFlowFeatureCosineSimilarity(flow1.getFeature(), mflow1.getFeature());
             double cs2 = getFlowFeatureCosineSimilarity(flow2.getFeature(), mflow2.getFeature());
@@ -710,6 +746,16 @@ public class ParseUtil {
         System.out.println(ParseUtil.getFlowFeatureCosineSimilarity(feature4,feature3));
         System.out.println(ParseUtil.getFlowFeatureCosineSimilarity(feature5,feature3));
         System.out.println(ParseUtil.getFlowFeatureCosineSimilarity(feature6,feature3));
+    }
+
+    public static Set<String> getSNIFromDB(int appId) throws SQLException {
+        Set<String> snis = new HashSet<>();
+        String sni_query_sql = "SELECT DISTINCT hostName FROM " + DBUtil.FLOWS_TABLE;
+        ResultSet sni_query_rs = DBUtil.doQuery(sni_query_sql);
+        while(sni_query_rs.next()) {
+            snis.add(sni_query_rs.getString("hostName"));
+        }
+        return snis;
     }
 
     public static void main(String[] args) throws Exception {

@@ -49,7 +49,22 @@
             <artifactId>mysql-connector-java</artifactId>
             <version>8.0.32</version>
         </dependency>
+        <dependency>
+            <groupId>jnetpcap</groupId>
+            <artifactId>jnetpcap</artifactId>
+            <version>1.4.r1425-1g</version>
+        </dependency>
 
     </dependencies>
+
+    <!-- jnetpcap抓包的maven配置 -->
+    <repositories>
+        <repository>
+            <id>Clojars</id>
+            <name>Clojars</name>
+            <url>https://clojars.org/repo/</url>
+        </repository>
+    </repositories>
+
 
 </project>

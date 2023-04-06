@@ -28,6 +28,7 @@ public class Parser {
          //todo 网络多流发掘 输入一个pcap 加密应用识别
         try {
             Set<String> dbSNIs = ParseUtil.getSNIFromDB(1);
+            if (dbSNIs == null) return;
             dbSNIs.retainAll(ParseUtil.SNI.values());
             if (dbSNIs.size()==0) {
                 log.info("No matching SNI information was found");

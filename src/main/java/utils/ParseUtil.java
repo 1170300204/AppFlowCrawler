@@ -748,13 +748,20 @@ public class ParseUtil {
         System.out.println(ParseUtil.getFlowFeatureCosineSimilarity(feature6,feature3));
     }
 
-    public static Set<String> getSNIFromDB(int appId) throws SQLException {
-        Set<String> snis = new HashSet<>();
+    public static Set<String> getSNIFromDB(int appId) {
+        Set<String> snis = null;
         String sni_query_sql = "SELECT DISTINCT hostName FROM " + DBUtil.FLOWS_TABLE;
         ResultSet sni_query_rs = DBUtil.doQuery(sni_query_sql);
-        while(sni_query_rs.next()) {
-            snis.add(sni_query_rs.getString("hostName"));
+        try {
+            snis = new HashSet<>();
+            while(sni_query_rs.next()) {
+                snis.add(sni_query_rs.getString("hostName"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            log.error("Fail to get SNI from DB.");
         }
+
         return snis;
     }
 

@@ -77,7 +77,36 @@ public class Crawler {
 
     public static void main(String[] args) throws Exception {
         Crawler crawler = new Crawler();
-
         crawler.doCrawl();
+
+
+//        long EXECUTION_TIME = 20 * 60 * 1000;
+//        Timer timer = new Timer();
+//        for (int i = 0; i < 10; i++) {
+//            timer.schedule(new TimerTask() {
+//                @Override
+//                public void run() {
+//                    Thread thread = new Thread(()->{
+//                        try {
+//                            Crawler crawler = new Crawler();
+//                            crawler.doCrawl();
+//                        } catch (InterruptedException e) {
+//                            log.info("Time out, shut down process.");
+//                        } catch (Exception e) {
+//                            e.printStackTrace();
+//                            log.error("Some Error happened");
+//                        }
+//                    });
+//                    thread.start();
+//                    try {
+//                        Thread.sleep(EXECUTION_TIME);
+//                    } catch (InterruptedException e) {
+//                        log.info("Interrupted Exception .");
+//                    }
+//                    thread.interrupt();
+//                }
+//            }, i*(EXECUTION_TIME + 3*60*1000));
+//        }
+
     }
 }

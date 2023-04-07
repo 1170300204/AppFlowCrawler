@@ -106,6 +106,7 @@ LIST:
     - 低电量模式
     - 关闭
     - Log out
+    - http
     - '//*[@text="去付款"]'
     - '//*[@text="vConsole"]'
     - '//*[@resource-id="__vconsole"]'

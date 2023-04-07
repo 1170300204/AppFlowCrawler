@@ -4,6 +4,7 @@ import com.csvreader.CsvReader;
 import flow.BasicFlow;
 import flow.FLowRelation;
 import flow.FlowFeature;
+import jnet.PcapUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,7 +13,6 @@ import java.nio.charset.Charset;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -20,6 +20,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ParseUtil {
+
     public static Logger log = LoggerFactory.getLogger(ParseUtil.class);
 
     public static final String PACKAGE_NAME = "com.vkontakte.android";
@@ -299,21 +300,24 @@ public class ParseUtil {
         return csvFIlePath + pcapFIle.substring(i) + "_Flow.csv";
     }
 
-    public static void getSNI(String pcapFile, String sniPath) {
-        String cmd = "python " + SNI_PY_PATH + " \"" + pcapFile + "\" \"" + sniPath + "\"";
-        CommandUtil.executeCmdNormal(cmd);
-        BufferedReader reader = null;
-        String temp = null;
-        try {
-            File sniFile = new File(sniPath);
-            reader = new BufferedReader(new FileReader(sniFile));
-            while ((temp=reader.readLine())!=null) {
-                String[] cols = temp.split("\t");
-                SNI.put(cols[0].trim(), cols[1].trim());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public static void setSNI(String pcapFile) {
+//        String cmd = "python " + SNI_PY_PATH + " \"" + pcapFile + "\" \"" + sniPath + "\"";
+//        CommandUtil.executeCmdNormal(cmd);
+//        BufferedReader reader = null;
+//        String temp = null;
+//        try {
+//            File sniFile = new File(sniPath);
+//            reader = new BufferedReader(new FileReader(sniFile));
+//            while ((temp=reader.readLine())!=null) {
+//                String[] cols = temp.split("\t");
+//                SNI.put(cols[0].trim(), cols[1].trim());
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+        Map<String, String> sniFromPcap = PcapUtil.getSNIFromPcap(pcapFile);
+        if (null != sniFromPcap)
+            SNI.putAll(sniFromPcap);
     }
 
     public static void storeDB(List<BasicFlow> flows, int fromDep, int toDep, String tag) throws SQLException {
@@ -771,8 +775,8 @@ public class ParseUtil {
         String timestampFile = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\timestamp.txt";
         String pcapFIle = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\pcaps\\com.vkontakte.android.pcap";
         String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\csvs";
-        String sniPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\sni.txt";
-        getSNI(pcapFIle, sniPath);
+//        String sniPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\com.vkontakte.android-2023-03-21_17-15-33\\sni.txt";
+        setSNI(pcapFIle);
         //        extract(timestampFile, pcapFIle, csvPath);
 
         //del

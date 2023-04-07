@@ -1,4 +1,5 @@
 import flow.BasicFlow;
+import jnet.PcapUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.ParseUtil;
@@ -87,7 +88,8 @@ public class Parser {
 //        parse("com.vkontakte.android-2023-04-03_16-00-40");
 //        parse("com.vkontakte.android-2023-04-03_16-24-17");
 //        parse("com.vkontakte.android-2023-04-03_19-54-56");
-//        parse("com.vkontakte.android-2023-04-06_21-28-08");
+
+        parse("com.vkontakte.android-2023-04-06_21-28-08");
 //        parse("com.vkontakte.android-2023-04-06_22-05-07");
 
 //        parse("com.vkontakte.android-2023-04-07_09-32-20");

@@ -143,7 +143,7 @@ public class PcapUtil {
                                             Ip4 ip4 = new Ip4();
                                             if (packet.hasHeader(ip4)) {
                                                 String dstIp = FormatUtils.ip(ip4.destination());
-                                                sniMap.put(sni,dstIp);
+                                                sniMap.put(dstIp,sni);
                                             }
                                         }
 

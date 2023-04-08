@@ -29,6 +29,7 @@ public class Parser {
             Set<String> dbSNIs = ParseUtil.getSNIFromDB(1);
             if (dbSNIs == null) return;
             dbSNIs.retainAll(ParseUtil.SNI.values());
+            System.out.println(dbSNIs);
             if (dbSNIs.size()==0) {
                 log.info("No matching SNI information was found");
                 return;
@@ -44,7 +45,7 @@ public class Parser {
             String csvFile = ParseUtil.cicFlowMeter(file, csvPath);
             List<BasicFlow> flows = ParseUtil.getFlowsFromCsv(new File(csvFile));
 //            flows.forEach(flow->log.info(flow.getServerHost()));
-            int toDepth = -1;
+            int toDepth;
             try {
                 toDepth = ParseUtil.match(flows, currentDepth, 1, flag);
                 if (toDepth<0) {
@@ -89,26 +90,26 @@ public class Parser {
 //        parse("com.vkontakte.android-2023-04-03_16-24-17");
 //        parse("com.vkontakte.android-2023-04-03_19-54-56");
 
-        parse("com.vkontakte.android-2023-04-06_21-28-08");
+//        parse("com.vkontakte.android-2023-04-06_21-28-08");
 //        parse("com.vkontakte.android-2023-04-06_22-05-07");
-
+//
 //        parse("com.vkontakte.android-2023-04-07_09-32-20");
 //        parse("com.vkontakte.android-2023-04-07_09-58-39");
 //        parse("com.vkontakte.android-2023-04-07_10-21-59");
 //        parse("com.vkontakte.android-2023-04-07_10-37-19");
-
+//
 //        parse("com.vkontakte.android-2023-04-07_13-04-17");
 //        parse("com.vkontakte.android-2023-04-07_13-32-50");
 //        parse("com.vkontakte.android-2023-04-07_14-11-13");
 //        parse("com.vkontakte.android-2023-04-07_14-37-23");
 //        parse("com.vkontakte.android-2023-04-07_15-00-17");
-
+//
 //        parse("com.vkontakte.android-2023-04-07_15-39-49");
 //        parse("com.vkontakte.android-2023-04-07_18-25-50");
 //        parse("com.vkontakte.android-2023-04-07_18-53-26");
 //        parse("com.vkontakte.android-2023-04-07_19-09-22");
 //        parse("com.vkontakte.android-2023-04-07_19-39-27");
-
+//
 //        parse("com.vkontakte.android-2023-04-07_20-01-27");
 //        parse("com.vkontakte.android-2023-04-07_20-39-45");
 //        parse("com.vkontakte.android-2023-04-07_21-03-18");

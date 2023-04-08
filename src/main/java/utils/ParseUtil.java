@@ -590,7 +590,7 @@ public class ParseUtil {
     //多流匹配
     //匹配成功返回对应多流的toDepth 否则返回-1
     public static int match(List<BasicFlow> matchFlows, int fromDepth, int appId, boolean flag) throws SQLException {
-        String multiFlow_query_sql = "SELECT * FROM " + DBUtil.CONTEXT_TABLE + " WHERE `depthFrom` = " + fromDepth + " and `appId` = " + appId;
+        String multiFlow_query_sql = "SELECT * FROM " + DBUtil.CONTEXT_TABLE + " WHERE `depthFrom` = " + fromDepth + " and `appId` = " + appId + " ORDER BY contextId;";
         ResultSet multiFlow_query_rs = DBUtil.doQuery(multiFlow_query_sql);
         Map<Integer, Integer> multiFlows = new HashMap<>();
         while (multiFlow_query_rs.next()) {
@@ -622,29 +622,57 @@ public class ParseUtil {
             fr.setPOtype(flow_rel_query_rs.getBoolean("POtype"));
             fr.setFlowcount1(flow_rel_query_rs.getInt("flow1count"));
             fr.setFlowcount2(flow_rel_query_rs.getInt("flow2count"));
-            frs.add(fr);
+            if (flag || fr.getFlowcount1() != 1 && fr.getFlowcount2() != 1) {
+                frs.add(fr);
+            }
         }
         if (frs.isEmpty())  {
-            if (matchFlows.size()==1 || flag) {
-                String flow_query_sql = "SELECT * FROM " + DBUtil.FLOWS_TABLE + " WHERE `multiFlowId` = " + multiFlowId;
-                ResultSet flow_query_rs = DBUtil.doQuery(flow_query_sql);
-                BasicFlow flow = null;
-                if(flow_query_rs.next()) {
-                    flow = DBUtil.getFLowById(flow_query_rs.getInt("flowId"));
+            String flow_query_sql = "SELECT * FROM " + DBUtil.FLOWS_TABLE + " WHERE `multiFlowId` = " + multiFlowId;
+            ResultSet flow_query_rs = DBUtil.doQuery(flow_query_sql);
+            List<BasicFlow> flows = new ArrayList<>();
+            while (flow_query_rs.next()) {
+                flows.add(DBUtil.getFLowById(flow_query_rs.getInt("flowId")));
+            }
+            List<BasicFlow> rm = new ArrayList<>();
+            flows.forEach(f->{if (f.getServerHost().length()<1)   rm.add(f);});
+            flows.removeAll(rm);
+            if (flows.isEmpty())    return 0;
+            int count = 0;
+            double res = 0;
+            for (BasicFlow flow : matchFlows) {
+                for (BasicFlow f : flows) {
+                    if (flow.getServerHost().equals(f.getServerHost())) {
+                        count++;
+                        res += getFlowFeatureCosineSimilarity(flow.getFeature(), f.getFeature());
+                        break;
+                    }
                 }
-                if (flow==null) return 0;
-                double max = 0;
-                for (BasicFlow mflow : matchFlows) {
-                    double cs = getFlowFeatureCosineSimilarity(flow.getFeature(), mflow.getFeature());
-                    if (cs > max)
-                        max = cs;
-                }
-                return max;
-            } else {
-//                log.info("No flow relation in DB.");
+            }
+            if (count==0) {
                 return 0;
+            } else {
+                return res/count;
             }
 
+//            if (matchFlows.size()==1 || flag) {
+//                String flow_query_sql = "SELECT * FROM " + DBUtil.FLOWS_TABLE + " WHERE `multiFlowId` = " + multiFlowId;
+//                ResultSet flow_query_rs = DBUtil.doQuery(flow_query_sql);
+//                BasicFlow flow = null;
+//                if(flow_query_rs.next()) {
+//                    flow = DBUtil.getFLowById(flow_query_rs.getInt("flowId"));
+//                }
+//                if (flow==null) return 0;
+//                double max = 0;
+//                for (BasicFlow mflow : matchFlows) {
+//                    double cs = getFlowFeatureCosineSimilarity(flow.getFeature(), mflow.getFeature());
+//                    if (cs > max)
+//                        max = cs;
+//                }
+//                return max;
+//            } else {
+////                log.info("No flow relation in DB.");
+//                return 0;
+//            }
         }
 
         double res = 0;

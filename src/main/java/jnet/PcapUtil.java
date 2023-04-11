@@ -7,6 +7,7 @@ import org.jnetpcap.packet.PcapPacket;
 import org.jnetpcap.packet.PcapPacketHandler;
 import org.jnetpcap.packet.format.FormatUtils;
 import org.jnetpcap.protocol.network.Ip4;
+import org.jnetpcap.protocol.tcpip.Http;
 import org.jnetpcap.protocol.tcpip.Tcp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,17 +21,22 @@ public class PcapUtil {
 
     public static final Logger log = LoggerFactory.getLogger(PcapUtil.class);
 
-    //threshold ms
-    public static List<String> splitPcapByThreshold(String pcapFIleName, long threshold, int minLength, String outputDirectory) {
-        List<String> resFiles = new ArrayList<>();
+    private static Pcap getPcap(String pcapFileName) {
         StringBuilder error = new StringBuilder();
+        return Pcap.openOffline(pcapFileName, error);
+    }
 
-        Pcap pcap = Pcap.openOffline(pcapFIleName, error);
-        final PcapDumper[] dumper = {null};
+    //threshold ms
+    public static List<String> splitPcapByThreshold(String pcapFileName, long threshold, int minLength, String outputDirectory) {
+        List<String> resFiles = new ArrayList<>();
+
+        Pcap pcap = getPcap(pcapFileName);
         if (null == pcap) {
-            log.error("Error while opening file :" + error);
+            log.error("Error while opening file.");
             return null;
         }
+        final PcapDumper[] dumper = {null};
+
         PcapPacketHandler<String> packetHandler = new PcapPacketHandler<String>() {
             private long previousTimestamp = 0;
             private int count = 0;
@@ -63,11 +69,10 @@ public class PcapUtil {
         return resFiles;
     }
 
-    public static Map<String, String> getSNIFromPcap(String pcapFIleName) {
-        StringBuilder error = new StringBuilder();
-        Pcap pcap = Pcap.openOffline(pcapFIleName, error);
+    public static Map<String, String> getSNIFromPcap(String pcapFileName) {
+        Pcap pcap = getPcap(pcapFileName);
         if (null == pcap) {
-            log.error("Error while opening file :" + error);
+            log.error("Error while opening file");
             return null;
         }
 
@@ -159,10 +164,10 @@ public class PcapUtil {
         return sniMap;
     }
 
-    public static String filterPcapBySni(String pcapFIleName, int appId, String outputDirectory) {
+    public static String filterPcapBySni(String pcapFileName, int appId, String outputDirectory) {
         Set<String> sniFromDB  = ParseUtil.getSNIFromDB(appId);
         if (sniFromDB==null)    return null;
-        Map<String, String> sniFromPcap = getSNIFromPcap(pcapFIleName);
+        Map<String, String> sniFromPcap = getSNIFromPcap(pcapFileName);
         if (null == sniFromPcap)    return null;
         Set<String> ips = new HashSet<>();
 //        for (String sni : sniFromDB) {
@@ -177,10 +182,9 @@ public class PcapUtil {
         }
         log.info("Ip in pcap match SNI in DB : " + ips);
 
-        StringBuilder error = new StringBuilder();
-        Pcap pcap = Pcap.openOffline(pcapFIleName, error);
+        Pcap pcap = getPcap(pcapFileName);
         if (null == pcap) {
-            log.error("Error while opening file :" + error);
+            log.error("Error while opening file.");
             return null;
         }
 
@@ -203,11 +207,73 @@ public class PcapUtil {
         return resPcap;
     }
 
+    public static HashMap<String, List<PcapPacket>> heuristicDig(String pcapFileName) {
+        //todo 利用启发性信息对pcap中可能具有的潜在多流关系进行挖掘
+        //相同的客户端IP
+        //相同网段的服务端lP
+        //相同或相似的DNS信息对应的IP
+        //相同或相似的SNI
+        //
+        Pcap pcap = getPcap(pcapFileName);
+        if (null == pcap) {
+            log.error("Error while opening file.");
+            return null;
+        }
+        HashMap<String, List<PcapPacket>> flowMap = new HashMap<String, List<PcapPacket>>();
+        PcapPacketHandler<String> packetHandler = (packet, user) -> {
+            StringBuilder sb = new StringBuilder("");
+            PcapHeader header = packet.getCaptureHeader();
+            Ip4 ip4 = new Ip4();
+            Http http = new Http();
+
+            if (packet.hasHeader(ip4)) {
+                String srcIp = FormatUtils.ip(ip4.source());
+                String dstIp = FormatUtils.ip(ip4.destination());
+
+                sb.append(srcIp, 0, srcIp.lastIndexOf('.')).append("_");
+                sb.append(dstIp, 0, dstIp.lastIndexOf('.')).append("_");
+                //sni //dns
+                if (packet.hasHeader(http)) {
+                    String dnsInfo = http.fieldValue(Http.Request.Host);
+                    if (dnsInfo!=null)  sb.append(dnsInfo).append("_");
+                    String sni = http.fieldValue(Http.Response.Server);
+                    if (sni!=null)  sb.append(sni).append("_");
+                }
+
+                String flowKey = sb.toString();
+                if (flowMap.containsKey(flowKey)) {
+                    List<PcapPacket> packetList = flowMap.get(flowKey);
+                    packetList.add(packet);
+                } else {
+                    List<PcapPacket> packetList = new ArrayList<>();
+                    packetList.add(packet);
+                    flowMap.put(flowKey, packetList);
+                }
+            }
+        };
+        pcap.loop(Pcap.LOOP_INFINITE, packetHandler, "jNetPcap rocks!");
+        pcap.close();
+        return flowMap;
+    }
 
     public static void main(String[] args) {
 
 //        System.out.println(splitPcapByThreshold("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\vk2\\input2.pcap", 4000, 20, "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\vk2"));
 //        getSNIFromPcap("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\vk2\\input2.pcap");
-        System.out.println(filterPcapBySni("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\vk2\\input2.pcap", 1, "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\vk2"));
+//        System.out.println(filterPcapBySni("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\vk2\\input2.pcap", 1, "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\vk2"));
+        HashMap<String, List<PcapPacket>> flowMap = heuristicDig("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\mixedTraffic1\\mixedTraffic1.pcap");
+        if (flowMap!=null) {
+            for (String flowKey : flowMap.keySet()) {
+                log.info(flowKey + " : " + flowMap.get(flowKey).size());
+            }
+        }
+        log.info("========================");
+        flowMap = heuristicDig("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\mixedTraffic1\\filtered.pcap");
+        if (flowMap!=null) {
+            for (String flowKey : flowMap.keySet()) {
+                log.info(flowKey + " : " + flowMap.get(flowKey).size());
+            }
+        }
+
     }
 }

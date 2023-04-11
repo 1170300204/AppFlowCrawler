@@ -79,7 +79,6 @@ public class Crawler {
         Crawler crawler = new Crawler();
         crawler.doCrawl();
 
-
 //        long EXECUTION_TIME = 20 * 60 * 1000;
 //        Timer timer = new Timer();
 //        for (int i = 0; i < 10; i++) {

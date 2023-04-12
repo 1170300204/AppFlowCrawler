@@ -586,10 +586,37 @@ public class ParseUtil {
         }
     }
 
-    //todo 传入的流需要预先处理好host(SNI)信息以进行后续流的匹配
+    public static Map<Integer, Integer> matchApp(String pcapFilePath) throws SQLException {
+        Map<String, String> sniFromPcap = PcapUtil.getSNIFromPcap(pcapFilePath);
+        if (sniFromPcap == null || sniFromPcap.isEmpty()) {
+            log.info("No available snap information in PCAP.");
+            return null;
+        }
+        List<Integer> appsFromDB = DBUtil.getAppsFromDB();
+        if (appsFromDB.size() == 0) {
+            log.info("No App in DB");
+            return null;
+        }
+        Map<Integer, Integer> appSniMatchMap = new HashMap<>();
+        for (int appId : appsFromDB) {
+            Set<String> sniFromDB = DBUtil.getSNIFromDB(appId);
+            int count = 0;
+            for (String sni : sniFromPcap.values()) {
+                if (sniFromDB.contains(sni)) {
+                    count ++;
+                }
+            }
+            if (count != 0) {
+                appSniMatchMap.put(appId, count);
+            }
+        }
+        return appSniMatchMap;
+    }
+
     //多流匹配
     //匹配成功返回对应多流的toDepth 否则返回-1
-    public static int match(List<BasicFlow> matchFlows, int fromDepth, int appId, boolean flag) throws SQLException {
+    //传入的流需要预先处理好host(SNI)信息以进行后续流的匹配
+    public static int matchFlow(List<BasicFlow> matchFlows, int fromDepth, int appId, boolean flag) throws SQLException {
         String multiFlow_query_sql = "SELECT * FROM " + DBUtil.CONTEXT_TABLE + " WHERE `depthFrom` = " + fromDepth + " and `appId` = " + appId + " ORDER BY contextId;";
         ResultSet multiFlow_query_rs = DBUtil.doQuery(multiFlow_query_sql);
         Map<Integer, Integer> multiFlows = new HashMap<>();
@@ -745,8 +772,6 @@ public class ParseUtil {
     }
 
 
-
-
     public static void test() {
         FlowFeature feature1 = new FlowFeature(2840,0,560.255639097744,702.029586423657,65,67,68557,5957,1460,2840,0,0,1054.72307692307,88.9104477611939,584.501831361874,428.158450255923);
         System.out.println(feature1);
@@ -778,23 +803,6 @@ public class ParseUtil {
         System.out.println(ParseUtil.getFlowFeatureCosineSimilarity(feature4,feature3));
         System.out.println(ParseUtil.getFlowFeatureCosineSimilarity(feature5,feature3));
         System.out.println(ParseUtil.getFlowFeatureCosineSimilarity(feature6,feature3));
-    }
-
-    public static Set<String> getSNIFromDB(int appId) {
-        Set<String> snis = null;
-        String sni_query_sql = "SELECT DISTINCT hostName FROM " + DBUtil.FLOWS_TABLE;
-        ResultSet sni_query_rs = DBUtil.doQuery(sni_query_sql);
-        try {
-            snis = new HashSet<>();
-            while(sni_query_rs.next()) {
-                snis.add(sni_query_rs.getString("hostName"));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            log.error("Fail to get SNI from DB.");
-        }
-
-        return snis;
     }
 
     public static void main(String[] args) throws Exception {

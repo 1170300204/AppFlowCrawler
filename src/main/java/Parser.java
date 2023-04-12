@@ -1,12 +1,13 @@
 import flow.BasicFlow;
-import jnet.PcapUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.DBUtil;
 import utils.ParseUtil;
 
 import java.io.File;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class Parser {
@@ -23,10 +24,38 @@ public class Parser {
         ParseUtil.extract(timestampFile, pcapFIle, csvPath);
     }
 
+    //目前的简单实现是根据与每个APP库的SNI匹配数量来决定
+    //可能存在两个APP库中有相同的SNI
+    public static int matchApp(String pcapFilePath) {
+        Map<Integer, Integer> appSniMatchMap;
+        try {
+             appSniMatchMap = ParseUtil.matchApp(pcapFilePath);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            log.error("Fail to match App.");
+            return -1;
+        }
+        if (appSniMatchMap==null || appSniMatchMap.isEmpty()) {
+            log.info("No Match App.");
+            return -1;
+        }
+        int matchApp = 0;
+        int maxCount = 0;
+        for (int appId : appSniMatchMap.keySet()) {
+            int count = appSniMatchMap.get(appId);
+            log.info("appId : " + appId + " = " + count);
+            if (count > maxCount) {
+                matchApp = appId;
+                maxCount = count;
+            }
+        }
+        return matchApp != 0 ? matchApp : -1;
+    }
+
     public static void match(List<String> files, boolean flag){
          //todo 网络多流发掘 输入一个pcap 加密应用识别
         try {
-            Set<String> dbSNIs = ParseUtil.getSNIFromDB(1);
+            Set<String> dbSNIs = DBUtil.getSNIFromDB(1);
             if (dbSNIs == null) return;
             dbSNIs.retainAll(ParseUtil.SNI.values());
             System.out.println(dbSNIs);
@@ -47,7 +76,7 @@ public class Parser {
 //            flows.forEach(flow->log.info(flow.getServerHost()));
             int toDepth;
             try {
-                toDepth = ParseUtil.match(flows, currentDepth, 1, flag);
+                toDepth = ParseUtil.matchFlow(flows, currentDepth, 1, flag);
                 if (toDepth<0) {
                     log.info("Fail to match, try next.");
                     continue;
@@ -69,7 +98,7 @@ public class Parser {
         try{
             for (List<BasicFlow> flows : input) {
                 int temp = currentDepth;
-                currentDepth = ParseUtil.match(flows, currentDepth, appId, false);
+                currentDepth = ParseUtil.matchFlow(flows, currentDepth, appId, false);
                 if (currentDepth < 0) {
                     log.info("No Matching Multi-Flow Found. Stop at " + input.indexOf(flows) + " [appId : " + appId + " , Depth : " + temp + "] :");
                     flows.forEach(flow -> log.info(flow.toString()));

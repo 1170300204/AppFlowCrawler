@@ -6,6 +6,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class DBUtil {
     public static Logger log = LoggerFactory.getLogger(DBUtil.class);
@@ -114,6 +118,33 @@ public class DBUtil {
             flow.setFeature(feature);
         }
         return flow;
+    }
+
+    public static Set<String> getSNIFromDB(int appId) {
+        Set<String> snis = null;
+        String sni_query_sql = "SELECT DISTINCT hostName FROM " + DBUtil.FLOWS_TABLE;
+        ResultSet sni_query_rs = DBUtil.doQuery(sni_query_sql);
+        try {
+            snis = new HashSet<>();
+            while(sni_query_rs.next()) {
+                snis.add(sni_query_rs.getString("hostName"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            log.error("Fail to get SNI from DB.");
+        }
+
+        return snis;
+    }
+
+    public static List<Integer> getAppsFromDB() throws SQLException {
+        String app_query_sql = "SELECT * FROM " + DBUtil.APP_TABLE + ";";
+        List<Integer> appIds = new ArrayList<>();
+        ResultSet app_query_rs = DBUtil.doQuery(app_query_sql);
+        while (app_query_rs.next()) {
+            appIds.add(app_query_rs.getInt("appId"));
+        }
+        return appIds;
     }
 
 }

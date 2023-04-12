@@ -11,6 +11,7 @@ import org.jnetpcap.protocol.tcpip.Http;
 import org.jnetpcap.protocol.tcpip.Tcp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.DBUtil;
 import utils.ParseUtil;
 
 import java.io.File;
@@ -165,7 +166,7 @@ public class PcapUtil {
     }
 
     public static String filterPcapBySni(String pcapFileName, int appId, String outputDirectory) {
-        Set<String> sniFromDB  = ParseUtil.getSNIFromDB(appId);
+        Set<String> sniFromDB  = DBUtil.getSNIFromDB(appId);
         if (sniFromDB==null)    return null;
         Map<String, String> sniFromPcap = getSNIFromPcap(pcapFileName);
         if (null == sniFromPcap)    return null;
@@ -267,13 +268,5 @@ public class PcapUtil {
                 log.info(flowKey + " : " + flowMap.get(flowKey).size());
             }
         }
-        log.info("========================");
-        flowMap = heuristicDig("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\mixedTraffic1\\filtered.pcap");
-        if (flowMap!=null) {
-            for (String flowKey : flowMap.keySet()) {
-                log.info(flowKey + " : " + flowMap.get(flowKey).size());
-            }
-        }
-
     }
 }

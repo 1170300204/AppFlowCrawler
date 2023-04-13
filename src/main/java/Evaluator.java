@@ -3,6 +3,10 @@ import org.slf4j.LoggerFactory;
 import org.testng.internal.collections.Pair;
 import utils.EvaluationUtil;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,7 +18,7 @@ public class Evaluator {
     //二分类,
     //label 为制定应用的ID
     public static void BC_Result(List<Pair<Integer, LinkedList<Integer>>> predicted, List<Pair<Integer, LinkedList<Integer>>> actual, int label) {
-        if (predicted.isEmpty() || actual.isEmpty() || predicted.size() != actual.size())    return;
+        if (null == predicted || null == actual || predicted.isEmpty() || actual.isEmpty() || predicted.size() != actual.size())    return;
         int appTP = 0;
         int appFP = 0;
         int appTN = 0;
@@ -42,12 +46,15 @@ public class Evaluator {
                     appTP++;
                 } else {
                     appTN++;
+                    continue;
                 }
             } else {
                 if (prdApp == label) {
                     appFP++;
+                    continue;
                 } else {
                     appFN++;
+                    continue;
                 }
             }
 
@@ -88,15 +95,154 @@ public class Evaluator {
         log.info("========App Detection========");
         log.info("Accuracy : " + appIndicators[0]);
         log.info("Precision : " + appIndicators[1]);
-        log.info("Recall" + appIndicators[2]);
+        log.info("Recall : " + appIndicators[2]);
         log.info("F1 : " + appIndicators[3]);
         log.info("==================================");
-        log.info("========Behavior Detection========");
-        log.info("Accuracy : " + behaviorAccuracy/count);
-        log.info("Precision : " + behaviorPrecision/count);
-        log.info("Recall" + behaviorRecall/count);
-        log.info("F1 : " + behaviorF1/count);
+        if (count!=0) {
+            log.info("========Behavior Detection========");
+            log.info("Accuracy : " + behaviorAccuracy/count);
+            log.info("Precision : " + behaviorPrecision/count);
+            log.info("Recall : " + behaviorRecall/count);
+            log.info("F1 : " + behaviorF1/count);
+            log.info("==================================");
+        }
+    }
+
+    public static void BC_Result1(List<Pair<Integer, LinkedList<Integer>>> predicted, List<Pair<Integer, LinkedList<Integer>>> actual, int label) {
+        if (null == predicted || null == actual || predicted.isEmpty() || actual.isEmpty() || predicted.size() != actual.size())    return;
+        int appTP = 0;
+        int appFP = 0;
+        int appTN = 0;
+        int appFN = 0;
+
+        int count = 0;
+
+        int behaviorTP = 0;//表示模型检测到的行为序列与实际行为序列匹配的数量
+        int behaviorFP = 0;//表示模型检测到的行为序列与实际行为序列不匹配的数量
+        int behaviorFN = 0;// 表示实际行为序列中未被检测到的序列数量
+
+        for (int i = 0; i < predicted.size(); i++) {
+
+            Pair<Integer, LinkedList<Integer>> prdPair = predicted.get(i);
+            int prdApp = prdPair.first();
+            LinkedList<Integer> prdBehaviorSequence = prdPair.second();
+
+            Pair<Integer, LinkedList<Integer>> actPair = actual.get(i);
+            int actApp = actPair.first();
+            LinkedList<Integer> actBehaviorSequence = actPair.second();
+
+            if (prdApp == actApp) {
+                if (prdApp == label) {
+                    appTP++;
+                } else {
+                    appTN++;
+                    continue;
+                }
+            } else {
+                if (prdApp == label) {
+                    appFP++;
+                    continue;
+                } else {
+                    appFN++;
+                    continue;
+                }
+            }
+
+            List<Integer> tpList = new ArrayList<>(prdBehaviorSequence);
+            tpList.retainAll(actBehaviorSequence);
+            behaviorTP += tpList.size();
+
+            List<Integer> fpList = new ArrayList<>(prdBehaviorSequence);
+            fpList.removeAll(actBehaviorSequence);
+            behaviorFP += fpList.size();
+
+            List<Integer> fnList = new ArrayList<>(actBehaviorSequence);
+            fnList.removeAll(prdBehaviorSequence);
+            behaviorFN += fnList.size();
+
+            count ++;
+        }
+
+        double[] appIndicators = EvaluationUtil.BC_Result_App_Evaluation(appTP, appFP, appTN, appFN);
+        if (appIndicators.length!=4) {
+            log.error("App Evaluation indicators count Error. Excepted : " + 4 + " , actual : " + appIndicators.length);
+            return;
+        }
+        log.info("\nFinal Evaluation----------------------------------------------");
+        log.info("========App Detection========");
+        log.info("Accuracy : " + appIndicators[0]);
+        log.info("Precision : " + appIndicators[1]);
+        log.info("Recall : " + appIndicators[2]);
+        log.info("F1 : " + appIndicators[3]);
         log.info("==================================");
+        if (count!=0) {
+            log.info(behaviorTP + " " + behaviorFP + " " + behaviorFN);
+            double[] indicators = EvaluationUtil.BC_Result_Behavior_Evaluation(behaviorTP, behaviorFP, behaviorFN);
+            if (indicators.length!=4) {
+                log.error("Evaluation indicators count Error. Excepted : " + 4 + " , actual : " + indicators.length);
+                return;
+            }
+            log.info("========Behavior Detection========");
+            log.info("Accuracy : " + indicators[0]);
+            log.info("Precision : " + indicators[1]);
+            log.info("Recall : " + indicators[2]);
+            log.info("F1 : " + indicators[3]);
+            log.info("==================================");
+        }
+    }
+
+    public static List<Pair<Integer, LinkedList<Integer>>> readData(String dataFileName) {
+        File dataFile = new File(dataFileName);
+        if (!dataFile.exists()) return null;
+        BufferedReader reader = null;
+        String temp;
+        List<Pair<Integer, LinkedList<Integer>>> data = null;
+        try {
+            data = new ArrayList<>();
+            reader = new BufferedReader(new FileReader(dataFile));
+            while ((temp=reader.readLine())!=null) {
+
+                String[] parts = temp.split(" ");
+                if (parts.length==1) {
+                    int appId = Integer.parseInt(parts[0]);
+                    LinkedList<Integer> behaviorSequence = new LinkedList<>();
+                    Pair<Integer, LinkedList<Integer>> pair = new Pair<>(appId, behaviorSequence);
+                    data.add(pair);
+                } else if (parts.length==2) {
+                    int appId = Integer.parseInt(parts[0]);
+                    LinkedList<Integer> behaviorSequence = new LinkedList<>();
+                    String[] behaviors = parts[1].split(",");
+                    for (String behavior : behaviors) {
+                        behaviorSequence.add(Integer.parseInt(behavior.trim()));
+                    }
+                    Pair<Integer, LinkedList<Integer>> pair = new Pair<>(appId, behaviorSequence);
+                    data.add(pair);
+                } else  {
+                    log.error("Data File parts error");
+                    return null;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            if (reader!=null) {
+                try {
+                    reader.close();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+        return data;
+    }
+
+    public static List<Pair<Integer, LinkedList<Integer>>> getData(String dirPath, int count) {
+        List<Pair<Integer, LinkedList<Integer>>> data = new ArrayList<>();
+        for(int i = 1;i <= count;i++) {
+            String pcapFile = dirPath + i + ".pcap";
+            Pair<Integer, LinkedList<Integer>> pair = Parser.match(pcapFile);
+            data.add(pair);
+        }
+        return data;
     }
 
     public static void main(String[] args) {

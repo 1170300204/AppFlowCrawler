@@ -1,11 +1,14 @@
 import flow.BasicFlow;
+import jnet.PcapUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.internal.collections.Pair;
 import utils.DBUtil;
 import utils.ParseUtil;
 
 import java.io.File;
 import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,6 +25,16 @@ public class Parser {
 
         ParseUtil.setSNI(pcapFIle);
         ParseUtil.extract(timestampFile, pcapFIle, csvPath);
+    }
+
+    public static Pair<Integer, LinkedList<Integer>> match(String pcapFileName) {
+        int appId = matchApp(pcapFileName);
+        String outputPath = new File(pcapFileName).getParentFile().getParent() + File.separator + "temp";
+        String filteredPcap = PcapUtil.filterPcapBySni(pcapFileName, appId, outputPath);
+        List<String> pcaps = PcapUtil.splitPcapByThreshold(filteredPcap, 3000, 30, outputPath);
+        ParseUtil.setSNI(pcapFileName);
+        LinkedList<Integer> behaviorSequence = Parser.match(pcaps, false);
+        return new Pair<>(appId, behaviorSequence);
     }
 
     //目前的简单实现是根据与每个APP库的SNI匹配数量来决定
@@ -52,23 +65,23 @@ public class Parser {
         return matchApp != 0 ? matchApp : -1;
     }
 
-    public static void match(List<String> files, boolean flag){
-         //todo 网络多流发掘 输入一个pcap 加密应用识别
+    public static LinkedList<Integer> match(List<String> files, boolean flag){
+        LinkedList<Integer> behaviorSequence = new LinkedList<>();
         try {
             Set<String> dbSNIs = DBUtil.getSNIFromDB(1);
-            if (dbSNIs == null) return;
+            if (dbSNIs == null) return behaviorSequence;
             dbSNIs.retainAll(ParseUtil.SNI.values());
             System.out.println(dbSNIs);
             if (dbSNIs.size()==0) {
                 log.info("No matching SNI information was found");
-                return;
+                return behaviorSequence;
             }
         } catch (Exception e) {
             log.error("Failed to retrieve SNI information");
         }
 
 
-        String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input";
+        String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\temp";
         int currentDepth = 0;
         for (String file : files) {
             String csvFile = ParseUtil.cicFlowMeter(file, csvPath);
@@ -76,16 +89,19 @@ public class Parser {
 //            flows.forEach(flow->log.info(flow.getServerHost()));
             int toDepth;
             try {
-                toDepth = ParseUtil.matchFlow(flows, currentDepth, 1, flag);
+                Pair<Integer, Integer> pair = ParseUtil.matchFlow(flows, currentDepth, 1, flag);
+                toDepth = pair.first();
                 if (toDepth<0) {
                     log.info("Fail to match, try next.");
                     continue;
                 }
                 currentDepth = toDepth;
+                behaviorSequence.add(pair.second());
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         }
+        return behaviorSequence;
     }
 
     public static void match(List<List<BasicFlow>> input, int appId) {
@@ -98,7 +114,8 @@ public class Parser {
         try{
             for (List<BasicFlow> flows : input) {
                 int temp = currentDepth;
-                currentDepth = ParseUtil.matchFlow(flows, currentDepth, appId, false);
+                Pair<Integer, Integer> pair = ParseUtil.matchFlow(flows, currentDepth, appId, false);
+                currentDepth = pair.first();
                 if (currentDepth < 0) {
                     log.info("No Matching Multi-Flow Found. Stop at " + input.indexOf(flows) + " [appId : " + appId + " , Depth : " + temp + "] :");
                     flows.forEach(flow -> log.info(flow.toString()));

@@ -22,6 +22,9 @@ import java.util.*;
 public class CrawlUtil {
 
     public static Logger log = LoggerFactory.getLogger(CrawlUtil.class);
+
+    public static final int INTERVAL = 10;
+
     public static StringBuilder timestampBuilder;
 
     public static XPath xPath = XPathFactory.newInstance().newXPath();
@@ -275,6 +278,7 @@ public class CrawlUtil {
         //遍历UI中的Node
         while (--length >= 0 && runningStates) {
             int nodeIndex = nodes.getLength()-length-1;
+//            int nodeIndex = length;
             log.info("Element #" + nodeIndex + "------------------------");
 //            Node node = nodes.item(length);
             Node node = nodes.item(nodeIndex);
@@ -724,7 +728,7 @@ public class CrawlUtil {
 
             log.info("Click " + clickCount + "th, X: "  + x + " ,Y: " + y);
 
-            DriverUtil.sleep(4);
+            DriverUtil.sleep(INTERVAL);
             page = DriverUtil.getPageSource();
             PackageStatus status = getPackageStatus(appName, false);
 

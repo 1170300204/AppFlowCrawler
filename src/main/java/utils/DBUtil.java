@@ -98,6 +98,7 @@ public class DBUtil {
             flow.setServerHost(flow_query_rs.getString("hostName"));
             flow.setDstPort(flow_query_rs.getInt("port"));
             flow.setTimestamp(flow_query_rs.getTimestamp("timestamp"));
+            flow.setInevitable(flow_query_rs.getBoolean("isInevitable"));
             FlowFeature feature = new FlowFeature();
             feature.setTotalPktMaxLength(flow_query_rs.getDouble("totalPktMaxLength"));
             feature.setTotalPktMinLength(flow_query_rs.getDouble("totalPktMinLength"));
@@ -118,6 +119,62 @@ public class DBUtil {
             flow.setFeature(feature);
         }
         return flow;
+    }
+
+    public static List<BasicFlow> getInevitableFlows(int contextId) throws SQLException {
+        String inevitable_flow_query_sql = "SELECT * FROM " + DBUtil.FLOWS_TABLE + " WHERE `multiFlowId` = " + contextId + " and `isInevitable` = 1";
+        ResultSet inevitable_flow_query_rs = DBUtil.doQuery(inevitable_flow_query_sql);
+        List<BasicFlow> inevitableFlows = new ArrayList<>();
+        while (inevitable_flow_query_rs.next()) {
+            int flowId = inevitable_flow_query_rs.getInt("flowId");
+            BasicFlow flow = getFLowById(flowId);
+            inevitableFlows.add(flow);
+        }
+        return inevitableFlows;
+    }
+
+    public static void setInevitableFlow(long flowId, boolean isInevitable) throws SQLException {
+//        UPDATE `appflowcrawler`.`flows` SET `isInevitable` = '0' WHERE (`flowId` = '884');
+        String inevitable_flow_update_sql = "UPDATE " + FLOWS_TABLE + " SET `isInevitable` = '" + (isInevitable?1:0) +"' WHERE (`flowId` = '" + flowId + "');";
+        if(DBUtil.doUpdate(inevitable_flow_update_sql) > 0) {
+            log.info("Success to update flow[" + flowId + "] inevitable to " + isInevitable);
+        }
+    }
+
+    public static int storeFlow(int contextId, BasicFlow flow) throws SQLException {
+        String flow_insert_sql = "INSERT INTO " + DBUtil.FLOWS_TABLE
+                + " (`multiFlowId`, `hostName`, `port`, `timestamp`, `isInevitable`, `totalPktMaxLength`, `totalPktMinLength`, `totalPktMeanLength`, `totalPktStdLength`, `fwdPktCount`, `bwdPktCount`, `fwdPktTotalLength`, `bwdPktTotalLength`, `fwdPktMaxLength`, `bwdPktMaxLength`, `fwdPktMinLength`, `bwdPktMinLength`, `fwdPktMeanLength`, `bwdPktMeanLength`, `fwdPktStdLength`, `bwdPktStdLength`) "
+                + "VALUES (" + contextId + ", '"+ flow.getServerHost() +"', " + flow.getDstPort() + ", '" + flow.getTimestamp() + "', " + (flow.getIsInevitable()?1:0) + ", " + flow.getFeature().getTotalPktMaxLength() + ", " + flow.getFeature().getTotalPktMinLength() + ", " + flow.getFeature().getTotalPktMeanLength() + ", " + flow.getFeature().getTotalPktStdLength() + ", "
+                + flow.getFeature().getFwdPktCount() + ", " + flow.getFeature().getBwdPktCount() + ", " + flow.getFeature().getFwdPktTotalLength() + ", " + flow.getFeature().getBwdPktTotalLength() + ", " + flow.getFeature().getFwdPktMaxLength() + ", " + flow.getFeature().getBwdPktMaxLength() + ", "
+                + flow.getFeature().getFwdPktMinLength() + ", " + flow.getFeature().getBwdPktMinLength() + ", " + flow.getFeature().getFwdPktMeanLength() + ", " + flow.getFeature().getBwdPktMeanLength() + ", " + flow.getFeature().getFwdPktStdLength() + ", " + flow.getFeature().getBwdPktStdLength() + ");";
+        if (DBUtil.doUpdate(flow_insert_sql) > 0) {
+            String flowId_query_sql = "SELECT LAST_INSERT_ID() FROM " + DBUtil.FLOWS_TABLE;
+            ResultSet flowId_query_rs = DBUtil.doQuery(flowId_query_sql);
+            if (flowId_query_rs.next()) {
+                int flowId = flowId_query_rs.getInt(1);
+                flow.setId(flowId);
+                log.info("Success to Create new flow : multiFlowId " + contextId + ", flowId " + flow.getId() + flow.getServerHost() + " " + flow.getServerHost());
+                return flowId;
+            }
+        }
+        return -1;
+    }
+
+    public static int storeFlowRel(BasicFlow flowI, BasicFlow flowJ, int contextId) throws SQLException {
+        int POType = flowI.getTimestamp().before(flowJ.getTimestamp())?1:0;
+        //INSERT INTO `appflowcrawler`.`flowrelation` (`multiflowId`, `flowId1`, `flowId2`, `isPO`, `POtype`, `flow1count`, `flow2count`) VALUES ('12', '1', '1', '1', '-1', '1', '1');
+        String flow_rel_insert_sql = "INSERT INTO " + DBUtil.FLOWRELATION_TABLE + " (`multiflowId`, `flowId1`, `flowId2`, `isPO`, `POtype`, `flow1count`, `flow2count`) " +
+                "VALUES (" + contextId + ", " + flowI.getId() + ", "+ flowJ.getId() + ", 1, " + POType + ", 1, 1);";
+        if (DBUtil.doUpdate(flow_rel_insert_sql) > 0) {
+            String flowRelId_query_sql = "SELECT LAST_INSERT_ID() FROM " + DBUtil.FLOWRELATION_TABLE;
+            ResultSet flowRelId_query_rs = DBUtil.doQuery(flowRelId_query_sql);
+            if (flowRelId_query_rs.next()) {
+                int flowRelId = flowRelId_query_rs.getInt(1);
+                log.info("Success to Create new flow relation : " + flowI.getId() + (POType==1?">":"<") + flowJ.getId());
+                return flowRelId;
+            }
+        }
+        return -1;
     }
 
     public static Set<String> getSNIFromDB(int appId) {

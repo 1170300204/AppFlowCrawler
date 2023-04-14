@@ -130,6 +130,12 @@ public class Parser {
 
     public static void main(String[] args) {
 
+//        parse("com.vkontakte.android-2023-04-09_10-58-25");
+//        parse("com.vkontakte.android-2023-04-09_11-21-38");
+//        parse("com.vkontakte.android-2023-04-09_12-02-28");
+//        parse("com.vkontakte.android-2023-04-09_12-35-01");
+//        parse("com.vkontakte.android-2023-04-09_13-17-53");
+
 //        parse("com.vkontakte.android-2023-04-03_15-17-53");
 //        parse("com.vkontakte.android-2023-04-03_15-56-07");
 //        parse("com.vkontakte.android-2023-04-03_16-00-40");
@@ -168,11 +174,7 @@ public class Parser {
 //        parse("com.vkontakte.android-2023-04-08_22-56-13");
 //        parse("com.vkontakte.android-2023-04-08_23-19-26");
 
-//        parse("com.vkontakte.android-2023-04-09_10-58-25");
-//        parse("com.vkontakte.android-2023-04-09_11-21-38");
-//        parse("com.vkontakte.android-2023-04-09_12-02-28");
-//        parse("com.vkontakte.android-2023-04-09_12-35-01");
-//        parse("com.vkontakte.android-2023-04-09_13-17-53");
+
 //
 //        parse("com.vkontakte.android-2023-04-09_13-58-33");
 //        parse("com.vkontakte.android-2023-04-09_14-25-12");

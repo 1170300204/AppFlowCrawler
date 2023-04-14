@@ -13,6 +13,7 @@ public class BasicFlow {
     private int dstPort;
     private int protocol;
     private Timestamp timestamp;
+    private boolean isInevitable;
 
     private FlowFeature feature;
 
@@ -112,6 +113,14 @@ public class BasicFlow {
         this.timestamp = timestamp;
     }
 
+    public boolean getIsInevitable() {
+        return isInevitable;
+    }
+
+    public void setInevitable(boolean inevitable) {
+        isInevitable = inevitable;
+    }
+
     @Override
     public String toString() {
         return "BasicFlow{" +
@@ -123,6 +132,7 @@ public class BasicFlow {
                 ", dstPort=" + dstPort +
                 ", protocol=" + protocol +
                 ", timestamp='" + timestamp + '\'' +
+                ", isInevitable=" + isInevitable +
                 ", feature=" + feature +
                 '}';
     }

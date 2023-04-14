@@ -323,6 +323,7 @@ public class ParseUtil {
     }
 
     public static void storeDB(List<BasicFlow> flows, int fromDep, int toDep, String tag) throws SQLException {
+        //处理应用ID
         int appId = -1;
         ResultSet rs_app = DBUtil.doQuery("SELECT * FROM " + DBUtil.APP_TABLE + " WHERE packageName = \"" + PACKAGE_NAME + "\"");
         if(!rs_app.next()) {
@@ -345,6 +346,7 @@ public class ParseUtil {
         }
         log.info("App ID in DB is " + appId);
 
+        //处理深度信息 如果没有相关的深度 则新建
         String fromDep_sql = "INSERT INTO " + DBUtil.DEPTH_TABLE + " (`depth`,`appId`) SELECT " + fromDep + "," + appId
                 + " FROM DUAL WHERE NOT EXISTS (SELECT * FROM " + DBUtil.DEPTH_TABLE + " where depth = " + fromDep + " and appId = " + appId + ")";
         String toDep_sql = "INSERT INTO " + DBUtil.DEPTH_TABLE + " (`depth`,`appId`) SELECT " + toDep + "," + appId
@@ -362,10 +364,13 @@ public class ParseUtil {
             return;
         }
 
+        //处理多流表
         int contextId = -1;
+        //如果库中已经存在了该context则不会操作 如果不存在则会新建一个
         String context_insert_sql = "INSERT INTO " + DBUtil.CONTEXT_TABLE + " (`contextId`,`depthFrom`, `depthTo`, `tag`, `appId`) SELECT null," + fromDep + "," + toDep +",'" + tag +"'," + appId
                 + "  FROM DUAL WHERE NOT EXISTS (SELECT * FROM " + DBUtil.CONTEXT_TABLE + " WHERE depthFrom=" + fromDep + " and depthTo=" + toDep + " and tag='" + tag + "' and appId=" + appId + ")";
         if (DBUtil.doUpdate(context_insert_sql) > 0) {
+            //新建成功 获取新建的context的ID
             String context_query_sql = "SELECT LAST_INSERT_ID() FROM " + DBUtil.CONTEXT_TABLE;
             ResultSet context_query_rs = DBUtil.doQuery(context_query_sql);
             if (context_query_rs.next()){
@@ -373,6 +378,7 @@ public class ParseUtil {
             }
             log.info("New Context Create :" + tag);
         } else {
+            //已经存在了 获取已经存在该context的ID
             String context_query_sql = "SELECT `contextId` FROM " + DBUtil.CONTEXT_TABLE + " WHERE depthFrom=" + fromDep + " and depthTo=" + toDep + " and tag='" + tag + "' and appId=" + appId;
             ResultSet context_query_rs = DBUtil.doQuery(context_query_sql);
             if (context_query_rs.next()){
@@ -386,84 +392,73 @@ public class ParseUtil {
         }
         log.info("Context ID in DB is " + contextId);
 
+        //获取该多流对应的一些单流
         String flows_query_sql = "SELECT * FROM " + DBUtil.FLOWS_TABLE + " WHERE multiFlowId=" + contextId;
         ResultSet flows_query_rs = DBUtil.doQuery(flows_query_sql);
         List<BasicFlow> extFlows = new ArrayList<>( );
         while(flows_query_rs.next()) {
-            BasicFlow flow = new BasicFlow();
-            flow.setId(flows_query_rs.getInt("flowId"));
-            flow.setServerHost(flows_query_rs.getString("hostName"));
-            flow.setDstPort(flows_query_rs.getInt("port"));
-            flow.setTimestamp(flows_query_rs.getTimestamp("timestamp"));
-            FlowFeature feature = new FlowFeature();
-            feature.setTotalPktMaxLength(flows_query_rs.getDouble("totalPktMaxLength"));
-            feature.setTotalPktMinLength(flows_query_rs.getDouble("totalPktMinLength"));
-            feature.setTotalPktMeanLength(flows_query_rs.getDouble("totalPktMeanLength"));
-            feature.setTotalPktStdLength(flows_query_rs.getDouble("totalPktStdLength"));
-            feature.setFwdPktCount(flows_query_rs.getLong("fwdPktCount"));
-            feature.setBwdPktCount(flows_query_rs.getLong("bwdPktCount"));
-            feature.setFwdPktTotalLength(flows_query_rs.getDouble("fwdPktTotalLength"));
-            feature.setFwdPktMaxLength(flows_query_rs.getDouble("fwdPktMaxLength"));
-            feature.setFwdPktMinLength(flows_query_rs.getDouble("fwdPktMinLength"));
-            feature.setFwdPktMeanLength(flows_query_rs.getDouble("fwdPktMeanLength"));
-            feature.setFwdPktStdLength(flows_query_rs.getDouble("fwdPktStdLength"));
-            feature.setBwdPktTotalLength(flows_query_rs.getDouble("bwdPktTotalLength"));
-            feature.setBwdPktMaxLength(flows_query_rs.getDouble("bwdPktMaxLength"));
-            feature.setBwdPktMinLength(flows_query_rs.getDouble("bwdPktMinLength"));
-            feature.setBwdPktMeanLength(flows_query_rs.getDouble("bwdPktMeanLength"));
-            feature.setBwdPktStdLength(flows_query_rs.getDouble("bwdPktStdLength"));
-            flow.setFeature(feature);
+            BasicFlow flow = DBUtil.getFLowById(flows_query_rs.getInt("flowId"));
             extFlows.add(flow);
         }
         if (extFlows.size()==0) {
-            //之前没有存储过该多流 则新建
+            //之前没有存储过该多流 即多流对应的单流集为空 则新建
             //新建流
             for (BasicFlow flow : flows) {
-                String flow_insert_sql = "INSERT INTO " + DBUtil.FLOWS_TABLE
-                        + " (`multiFlowId`, `hostName`, `port`, `timestamp`, `totalPktMaxLength`, `totalPktMinLength`, `totalPktMeanLength`, `totalPktStdLength`, `fwdPktCount`, `bwdPktCount`, `fwdPktTotalLength`, `bwdPktTotalLength`, `fwdPktMaxLength`, `bwdPktMaxLength`, `fwdPktMinLength`, `bwdPktMinLength`, `fwdPktMeanLength`, `bwdPktMeanLength`, `fwdPktStdLength`, `bwdPktStdLength`) "
-                        + "VALUES (" + contextId + ", '"+ flow.getServerHost() +"', " + flow.getDstPort() + ", '" + flow.getTimestamp() + "', " + flow.getFeature().getTotalPktMaxLength() + ", " + flow.getFeature().getTotalPktMinLength() + ", " + flow.getFeature().getTotalPktMeanLength() + ", " + flow.getFeature().getTotalPktStdLength() + ", "
-                        + flow.getFeature().getFwdPktCount() + ", " + flow.getFeature().getBwdPktCount() + ", " + flow.getFeature().getFwdPktTotalLength() + ", " + flow.getFeature().getBwdPktTotalLength() + ", " + flow.getFeature().getFwdPktMaxLength() + ", " + flow.getFeature().getBwdPktMaxLength() + ", "
-                        + flow.getFeature().getFwdPktMinLength() + ", " + flow.getFeature().getBwdPktMinLength() + ", " + flow.getFeature().getFwdPktMeanLength() + ", " + flow.getFeature().getBwdPktMeanLength() + ", " + flow.getFeature().getFwdPktStdLength() + ", " + flow.getFeature().getBwdPktStdLength() + ");";
-                if (DBUtil.doUpdate(flow_insert_sql) > 0) {
-                    String flowId_query_sql = "SELECT LAST_INSERT_ID() FROM " + DBUtil.FLOWS_TABLE;
-                    ResultSet flowId_query_rs = DBUtil.doQuery(flowId_query_sql);
-                    if (flowId_query_rs.next()) {
-                        flow.setId(flowId_query_rs.getInt(1));
-                        log.info("Success to Create new flow : multiFlowId " + contextId + ", flowId " + flow.getId() + flow.getServerHost() + " " + flow.getServerHost());
-                    }
+                flow.setInevitable(true);
+                int flowId = DBUtil.storeFlow(contextId, flow);
+                if (flowId > 0) {
+                    flow.setId(flowId);
                 }
             }
+
             //新建流关系
             int length = flows.size();
-            for (int i = 0; i < length - 1; i++) {
+            for (int i = 0; i < length; i++) {
                 BasicFlow flowI = flows.get(i);
                 for (int j = i+1; j < length; j++) {
                     BasicFlow flowJ = flows.get(j);
-                    int POType = flowI.getTimestamp().before(flowJ.getTimestamp())?1:0;
-                    //INSERT INTO `appflowcrawler`.`flowrelation` (`multiflowId`, `flowId1`, `flowId2`, `isPO`, `POtype`, `flow1count`, `flow2count`) VALUES ('12', '1', '1', '1', '-1', '1', '1');
-                    String flow_rel_insert_sql = "INSERT INTO " + DBUtil.FLOWRELATION_TABLE + " (`multiflowId`, `flowId1`, `flowId2`, `isPO`, `POtype`, `flow1count`, `flow2count`) " +
-                            "VALUES (" + contextId + ", " + flowI.getId() + ", "+ flowJ.getId() + ", 1, " + POType + ", 1, 1);";
-                    if (DBUtil.doUpdate(flow_rel_insert_sql) > 0) {
-                        log.info("Success to Create new flow relation : " + flowI.getId() + (POType==1?">":"<") + flowJ.getId());
-                    }
+                    DBUtil.storeFlowRel(flowI, flowJ, contextId);
                 }
             }
+
         } else {
+
             //已有多流 则更新多流信息
-            //记录匹配到的流
-            Map<BasicFlow, BasicFlow> matches = new HashMap<>();
-            List<BasicFlow> mflows = new ArrayList<>();
+            Map<BasicFlow, BasicFlow> matches = new HashMap<>();//记录匹配到的流和库中的流的对应关系 key是匹配流 value是库流
+            List<BasicFlow> mflows = new ArrayList<>();//存储匹配到的流
             for (BasicFlow flow : flows) {
                 for (BasicFlow bf: extFlows) {
                     if (flow.getServerHost().trim().equals(bf.getServerHost().trim()) && flow.getDstPort()==bf.getDstPort()
                             && getFlowFeatureCosineSimilarity(flow.getFeature(),bf.getFeature())>=0.9
                             && !matches.containsValue(bf)) {
+                        flow.setId(bf.getId());
                         matches.put(flow,bf);
                         mflows.add(flow);
                         break;
                     }
                 }
             }
+
+            ////////更新主流
+            List<BasicFlow> inevitableFlows = DBUtil.getInevitableFlows(contextId);
+            if (!inevitableFlows.isEmpty()) {
+                for (BasicFlow iFlow : inevitableFlows) {
+                    boolean hit = false;
+                    for (BasicFlow flow : flows) {
+                        if (flow.getId() == iFlow.getId()) {
+                            //主流出现
+                            hit = true;
+                            break;
+                        }
+                    }
+                    if (!hit) {
+                        DBUtil.setInevitableFlow(iFlow.getId(), false);
+                    }
+                }
+            }
+
+            ////////
+
             //更新匹配到的流之间的关系
             for (BasicFlow mflow : matches.values()) {
                 //更新count计数
@@ -482,7 +477,7 @@ public class ParseUtil {
                     log.info("Success to update flow[id=" + mflow.getId() + "] relations count.");
                 }
             }
-            for (int i = 0; i < mflows.size() - 1; i++) {
+            for (int i = 0; i < mflows.size(); i++) {
                 for (int j = i+1; j < mflows.size(); j++) {
                     boolean new_potype = mflows.get(i).getTimestamp().before(mflows.get(j).getTimestamp());
                     boolean potype = matches.get(mflows.get(i)).getTimestamp().before(matches.get(mflows.get(j)).getTimestamp());
@@ -498,31 +493,17 @@ public class ParseUtil {
             nflows.removeAll(mflows);
             //直接设为1-1 匹配的时候忽略1-1的边()
             for (BasicFlow nflow : nflows) {
-                String flow_insert_sql = "INSERT INTO " + DBUtil.FLOWS_TABLE
-                        + " (`multiFlowId`, `hostName`, `port`, `timestamp`, `totalPktMaxLength`, `totalPktMinLength`, `totalPktMeanLength`, `totalPktStdLength`, `fwdPktCount`, `bwdPktCount`, `fwdPktTotalLength`, `bwdPktTotalLength`, `fwdPktMaxLength`, `bwdPktMaxLength`, `fwdPktMinLength`, `bwdPktMinLength`, `fwdPktMeanLength`, `bwdPktMeanLength`, `fwdPktStdLength`, `bwdPktStdLength`) "
-                        + "VALUES (" + contextId + ", '"+ nflow.getServerHost() +"', " + nflow.getDstPort() + ", '" + nflow.getTimestamp() + "', " + nflow.getFeature().getTotalPktMaxLength() + ", " + nflow.getFeature().getTotalPktMinLength() + ", " + nflow.getFeature().getTotalPktMeanLength() + ", " + nflow.getFeature().getTotalPktStdLength() + ", "
-                        + nflow.getFeature().getFwdPktCount() + ", " + nflow.getFeature().getBwdPktCount() + ", " + nflow.getFeature().getFwdPktTotalLength() + ", " + nflow.getFeature().getBwdPktTotalLength() + ", " + nflow.getFeature().getFwdPktMaxLength() + ", " + nflow.getFeature().getBwdPktMaxLength() + ", "
-                        + nflow.getFeature().getFwdPktMinLength() + ", " + nflow.getFeature().getBwdPktMinLength() + ", " + nflow.getFeature().getFwdPktMeanLength() + ", " + nflow.getFeature().getBwdPktMeanLength() + ", " + nflow.getFeature().getFwdPktStdLength() + ", " + nflow.getFeature().getBwdPktStdLength() + ");";
-                if (DBUtil.doUpdate(flow_insert_sql) > 0) {
-                    String flowId_query_sql = "SELECT LAST_INSERT_ID() FROM " + DBUtil.FLOWS_TABLE;
-                    ResultSet flowId_query_rs = DBUtil.doQuery(flowId_query_sql);
-                    if (flowId_query_rs.next()) {
-                        nflow.setId(flowId_query_rs.getInt(1));
-                        log.info("Success to Create new flow : multiFlowId " + contextId + ", flowId " + nflow.getId() + " " + nflow.getServerHost() + " " + nflow.getDstPort());
-                    }
+                nflow.setInevitable(true);
+                int flowId = DBUtil.storeFlow(contextId, nflow);
+                if (flowId > 0) {
+                    nflow.setId(flowId);
                 }
             }
             for (int i = 0; i < nflows.size() - 1; i++) {
                 BasicFlow flowI = nflows.get(i);
                 for (int j = i+1; j < nflows.size(); j++) {
                     BasicFlow flowJ = nflows.get(j);
-                    int POType = flowI.getTimestamp().before(flowJ.getTimestamp())?1:0;
-                    //INSERT INTO `appflowcrawler`.`flowrelation` (`multiflowId`, `flowId1`, `flowId2`, `isPO`, `POtype`, `flow1count`, `flow2count`) VALUES ('12', '1', '1', '1', '-1', '1', '1');
-                    String flow_rel_insert_sql = "INSERT INTO " + DBUtil.FLOWRELATION_TABLE + " (`multiflowId`, `flowId1`, `flowId2`, `isPO`, `POtype`, `flow1count`, `flow2count`) " +
-                            "VALUES (" + contextId + ", " + flowI.getId() + ", "+ flowJ.getId() + ", 1, " + POType + ", 1, 1);";
-                    if (DBUtil.doUpdate(flow_rel_insert_sql) > 0) {
-                        log.info("Success to Create new flow relation : " + flowI.getId() + (POType==1?">":"<") + flowJ.getId());
-                    }
+                    DBUtil.storeFlowRel(flowI, flowJ, contextId);
                 }
             }
             List<BasicFlow> dbflows = new ArrayList<>(matches.values());
@@ -531,40 +512,38 @@ public class ParseUtil {
                     if (flow.getId()==flow1.getId()) {
                         continue;
                     }
-                    int POType = flow.getTimestamp().before(flow1.getTimestamp())?1:0;
-                    //INSERT INTO `appflowcrawler`.`flowrelation` (`multiflowId`, `flowId1`, `flowId2`, `isPO`, `POtype`, `flow1count`, `flow2count`) VALUES ('12', '1', '1', '1', '-1', '1', '1');
-                    String flow_rel_insert_sql = "INSERT INTO " + DBUtil.FLOWRELATION_TABLE + " (`multiflowId`, `flowId1`, `flowId2`, `isPO`, `POtype`, `flow1count`, `flow2count`) " +
-                            "VALUES (" + contextId + ", " + flow.getId() + ", "+ flow1.getId() + ", 1, " + POType + ", 1, 1);";
-                    if (DBUtil.doUpdate(flow_rel_insert_sql) > 0) {
-                        log.info("Success to Create new flow relation : " + flow.getId() + (POType==1?">":"<") + flow1.getId());
-                    }
+                    DBUtil.storeFlowRel(flow, flow1, contextId);
                 }
             }
         }
     }
 
     public static void extract(String timestampFile, String pcapFIle, String csvPath) {
+        //按照时间戳分割pcap
         ArrayList<String> pcaps = splitPcap(timestampFile, pcapFIle);
         File csvPathFIle = new File(csvPath);
         if (!csvPathFIle.exists()) {
             csvPathFIle.mkdirs();
         }
+        //提取pcap获得csv流特征文件
         ArrayList<String> csvs = new ArrayList<>();
         for (String pcap : pcaps) {
             String csv = cicFlowMeter(pcap, csvPath);
             csvs.add(csv);
             log.info("Extract csv : " + csv);
         }
+        //处理每个csv
         for (String csvString : csvs) {
             List<BasicFlow> flows;
             File csv = new File(csvString);
             if (csv.exists() && csv.canRead()) {
+                //从csv中获取并构建流
                 flows = getValidFlowsFromCsv(csv);
                 if (flows.size() == 0) {
                     continue;
                 }
-                int fromDep = -1;
-                int toDep = -1;
+                int fromDep;
+                int toDep;
                 Pattern pattern = Pattern.compile("(\\d+)_(\\d+).pcap_Flow.csv");
                 Matcher matcher = pattern.matcher(csvString);
                 if (matcher.find()) {

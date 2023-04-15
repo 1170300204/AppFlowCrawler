@@ -496,6 +496,7 @@ public class ParseUtil {
                 }
             }
             //对于未在库中匹配到对应流的 为其新建流添加到库中并更新流关系
+            /*
             List<BasicFlow> nflows = new ArrayList<>(flows);
             nflows.removeAll(mflows);
             //直接设为1-1 匹配的时候忽略1-1的边()
@@ -522,6 +523,7 @@ public class ParseUtil {
                     DBUtil.storeFlowRel(flow, flow1, contextId);
                 }
             }
+            */
         }
     }
 

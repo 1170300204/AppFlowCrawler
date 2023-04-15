@@ -147,17 +147,17 @@ public class Parser {
 //        parse("com.vkontakte.android-2023-04-06_22-05-07");
 //
 //        parse("com.vkontakte.android-2023-04-07_09-32-20");
-//        parse("com.vkontakte.android-2023-04-07_09-58-39");
-//        parse("com.vkontakte.android-2023-04-07_10-21-59");
-//        parse("com.vkontakte.android-2023-04-07_10-37-19");
-//
-//        parse("com.vkontakte.android-2023-04-07_13-04-17");
-//        parse("com.vkontakte.android-2023-04-07_13-32-50");
-//        parse("com.vkontakte.android-2023-04-07_14-11-13");
-//        parse("com.vkontakte.android-2023-04-07_14-37-23");
-//        parse("com.vkontakte.android-2023-04-07_15-00-17");
-//
-//        parse("com.vkontakte.android-2023-04-07_15-39-49");
+        parse("com.vkontakte.android-2023-04-07_09-58-39");
+        parse("com.vkontakte.android-2023-04-07_10-21-59");
+        parse("com.vkontakte.android-2023-04-07_10-37-19");
+
+        parse("com.vkontakte.android-2023-04-07_13-04-17");
+        parse("com.vkontakte.android-2023-04-07_13-32-50");
+        parse("com.vkontakte.android-2023-04-07_14-11-13");
+        parse("com.vkontakte.android-2023-04-07_14-37-23");
+        parse("com.vkontakte.android-2023-04-07_15-00-17");
+
+        parse("com.vkontakte.android-2023-04-07_15-39-49");
 //        parse("com.vkontakte.android-2023-04-07_18-25-50");
 //        parse("com.vkontakte.android-2023-04-07_18-53-26");
 //        parse("com.vkontakte.android-2023-04-07_19-09-22");
@@ -169,19 +169,17 @@ public class Parser {
 //        parse("com.vkontakte.android-2023-04-07_21-28-31");
 //        parse("com.vkontakte.android-2023-04-07_21-51-04");
 
-        parse("com.vkontakte.android-2023-04-08_20-54-59");
-        parse("com.vkontakte.android-2023-04-08_22-13-02");
-        parse("com.vkontakte.android-2023-04-08_22-37-58");
-        parse("com.vkontakte.android-2023-04-08_22-56-13");
-        parse("com.vkontakte.android-2023-04-08_23-19-26");
-
-
-
-        parse("com.vkontakte.android-2023-04-09_13-58-33");
-        parse("com.vkontakte.android-2023-04-09_14-25-12");
-        parse("com.vkontakte.android-2023-04-09_14-48-46");
-        parse("com.vkontakte.android-2023-04-09_16-35-47");
-        parse("com.vkontakte.android-2023-04-09_16-56-34");
+//        parse("com.vkontakte.android-2023-04-08_20-54-59");
+//        parse("com.vkontakte.android-2023-04-08_22-13-02");
+//        parse("com.vkontakte.android-2023-04-08_22-37-58");
+//        parse("com.vkontakte.android-2023-04-08_22-56-13");
+//        parse("com.vkontakte.android-2023-04-08_23-19-26");
+//
+//        parse("com.vkontakte.android-2023-04-09_13-58-33");
+//        parse("com.vkontakte.android-2023-04-09_14-25-12");
+//        parse("com.vkontakte.android-2023-04-09_14-48-46");
+//        parse("com.vkontakte.android-2023-04-09_16-35-47");
+//        parse("com.vkontakte.android-2023-04-09_16-56-34");
 
     }
 

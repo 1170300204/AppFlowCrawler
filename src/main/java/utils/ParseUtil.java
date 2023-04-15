@@ -779,9 +779,9 @@ public class ParseUtil {
 
 
     public static double getMultiFLowSimilarity_new(List<BasicFlow> matchFlows, int multiFlowId, boolean flag) throws SQLException {
-        double alpha = 0.7;
-        double beta = 0.15;
-        double gamma = 0.15;
+        double alpha = 0.85;
+        double beta = 0.075;
+        double gamma = 0.075;
 
         double phi = 0.6;
         double omega = 0.4;
@@ -943,6 +943,7 @@ public class ParseUtil {
                 contextDegree = 0;
             }
         }
+        log.info("inevitableDegree:" + inevitableDegree + ",contextDegree:"+contextDegree + ",pointDegree:"+pointDegree+",sizeDegree:"+sizeDegree);
         return alpha * (omega * inevitableDegree +  phi * contextDegree) + beta * pointDegree + gamma * sizeDegree;
     }
 

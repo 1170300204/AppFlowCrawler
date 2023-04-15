@@ -84,6 +84,7 @@ public class Parser {
         String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\temp";
         int currentDepth = 0;
         for (String file : files) {
+            System.out.println(file);
             String csvFile = ParseUtil.cicFlowMeter(file, csvPath);
             List<BasicFlow> flows = ParseUtil.getFlowsFromCsv(new File(csvFile));
 //            flows.forEach(flow->log.info(flow.getServerHost()));
@@ -164,23 +165,23 @@ public class Parser {
 //
 //        parse("com.vkontakte.android-2023-04-07_20-01-27");
 //        parse("com.vkontakte.android-2023-04-07_20-39-45");
-//        parse("com.vkontakte.android-2023-04-07_21-03-18");
+//        parse("com.vkontakte.android-2023-04-07_21-03-18");//
 //        parse("com.vkontakte.android-2023-04-07_21-28-31");
 //        parse("com.vkontakte.android-2023-04-07_21-51-04");
 
-//        parse("com.vkontakte.android-2023-04-08_20-54-59");
-//        parse("com.vkontakte.android-2023-04-08_22-13-02");
-//        parse("com.vkontakte.android-2023-04-08_22-37-58");
-//        parse("com.vkontakte.android-2023-04-08_22-56-13");
-//        parse("com.vkontakte.android-2023-04-08_23-19-26");
+        parse("com.vkontakte.android-2023-04-08_20-54-59");
+        parse("com.vkontakte.android-2023-04-08_22-13-02");
+        parse("com.vkontakte.android-2023-04-08_22-37-58");
+        parse("com.vkontakte.android-2023-04-08_22-56-13");
+        parse("com.vkontakte.android-2023-04-08_23-19-26");
 
 
-//
-//        parse("com.vkontakte.android-2023-04-09_13-58-33");
-//        parse("com.vkontakte.android-2023-04-09_14-25-12");
-//        parse("com.vkontakte.android-2023-04-09_14-48-46");
-//        parse("com.vkontakte.android-2023-04-09_16-35-47");
-//        parse("com.vkontakte.android-2023-04-09_16-56-34");
+
+        parse("com.vkontakte.android-2023-04-09_13-58-33");
+        parse("com.vkontakte.android-2023-04-09_14-25-12");
+        parse("com.vkontakte.android-2023-04-09_14-48-46");
+        parse("com.vkontakte.android-2023-04-09_16-35-47");
+        parse("com.vkontakte.android-2023-04-09_16-56-34");
 
     }
 

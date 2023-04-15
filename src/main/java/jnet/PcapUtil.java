@@ -28,6 +28,48 @@ public class PcapUtil {
     }
 
     //threshold ms
+//    public static List<String> splitPcapByThreshold(String pcapFileName, long threshold, int minLength, String outputDirectory) {
+//        List<String> resFiles = new ArrayList<>();
+//
+//        Pcap pcap = getPcap(pcapFileName);
+//        if (null == pcap) {
+//            log.error("Error while opening file.");
+//            return null;
+//        }
+//        final PcapDumper[] dumper = {null};
+//
+//        PcapPacketHandler<String> packetHandler = new PcapPacketHandler<String>() {
+//            private long previousTimestamp = 0;
+//            private int count = 0;
+//            @Override
+//            public void nextPacket(PcapPacket packet, String s) {
+//                if (packet.getTotalSize() < minLength)    return;
+//                PcapHeader header = packet.getCaptureHeader();
+//                long timestamp = header.timestampInMillis();
+//                if (previousTimestamp!=0 && timestamp - previousTimestamp >= threshold) {
+//                    dumper[0].flush();
+//                    dumper[0].close();
+//                    resFiles.add(outputDirectory + "/" + count + ".pcap");
+//                    count++;
+//                    dumper[0] = null;
+//                }
+//                if (dumper[0] == null) {
+//                    dumper[0] = pcap.dumpOpen(outputDirectory + "/" + count + ".pcap");
+//                }
+//                dumper[0].dump(packet);
+//                previousTimestamp = timestamp;
+//            }
+//        };
+//        pcap.loop(Pcap.LOOP_INFINITE, packetHandler, "jNetPcap rocks!");
+//        if (dumper[0]!=null) {
+//            dumper[0].flush();
+//            dumper[0].close();
+//        }
+//        pcap.close();
+//
+//        return resFiles;
+//    }
+
     public static List<String> splitPcapByThreshold(String pcapFileName, long threshold, int minLength, String outputDirectory) {
         List<String> resFiles = new ArrayList<>();
 
@@ -37,26 +79,53 @@ public class PcapUtil {
             return null;
         }
         final PcapDumper[] dumper = {null};
+        int pcapSize = getPcapSize(pcapFileName);
 
         PcapPacketHandler<String> packetHandler = new PcapPacketHandler<String>() {
             private long previousTimestamp = 0;
             private int count = 0;
+            private List<PcapPacket> burstPackets = new ArrayList<PcapPacket>();
+            private int minPackageCount = 10;
+            private int packetCount = 0;
+
             @Override
             public void nextPacket(PcapPacket packet, String s) {
+                packetCount++;
+                if (packetCount>=pcapSize) {
+                    if (dumper[0]!=null) {
+                        for (PcapPacket packet1 : burstPackets) {
+                            dumper[0].dump(packet1);
+                        }
+                        dumper[0].dump(packet);
+                        dumper[0].flush();
+                        dumper[0].close();
+                        resFiles.add(outputDirectory + "/" + count + ".pcap");
+                        count++;
+                        dumper[0] = null;
+                    }
+                }
                 if (packet.getTotalSize() < minLength)    return;
                 PcapHeader header = packet.getCaptureHeader();
                 long timestamp = header.timestampInMillis();
                 if (previousTimestamp!=0 && timestamp - previousTimestamp >= threshold) {
-                    dumper[0].flush();
-                    dumper[0].close();
-                    resFiles.add(outputDirectory + "/" + count + ".pcap");
-                    count++;
-                    dumper[0] = null;
+
+                    if (burstPackets.size() > minPackageCount) {
+                        for (PcapPacket packet1 : burstPackets) {
+                            dumper[0].dump(packet1);
+                        }
+                        dumper[0].flush();
+                        dumper[0].close();
+                        resFiles.add(outputDirectory + "/" + count + ".pcap");
+                        count++;
+                        dumper[0] = null;
+                    }
+                    burstPackets.clear();
                 }
                 if (dumper[0] == null) {
                     dumper[0] = pcap.dumpOpen(outputDirectory + "/" + count + ".pcap");
                 }
-                dumper[0].dump(packet);
+//                dumper[0].dump(packet);
+                burstPackets.add(packet);
                 previousTimestamp = timestamp;
             }
         };
@@ -257,16 +326,30 @@ public class PcapUtil {
         return flowMap;
     }
 
+    public static int getPcapSize(String pcapFileName) {
+        final int[] size = {0};
+        Pcap pcap = getPcap(pcapFileName);
+        PcapPacketHandler<String> packetHandler = new PcapPacketHandler<String>() {
+            @Override
+            public void nextPacket(PcapPacket pcapPacket, String s) {
+                size[0]++;
+            }
+        };
+        pcap.loop(Pcap.LOOP_INFINITE, packetHandler, "jNetPcap rocks!");
+        return size[0];
+    }
+
     public static void main(String[] args) {
 
 //        System.out.println(splitPcapByThreshold("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\vk2\\input2.pcap", 4000, 20, "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\vk2"));
 //        getSNIFromPcap("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\vk2\\input2.pcap");
 //        System.out.println(filterPcapBySni("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\vk2\\input2.pcap", 1, "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\vk2"));
-        HashMap<String, List<PcapPacket>> flowMap = heuristicDig("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\mixedTraffic1\\mixedTraffic1.pcap");
-        if (flowMap!=null) {
-            for (String flowKey : flowMap.keySet()) {
-                log.info(flowKey + " : " + flowMap.get(flowKey).size());
-            }
-        }
+//        HashMap<String, List<PcapPacket>> flowMap = heuristicDig("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\input\\mixedTraffic1\\mixedTraffic1.pcap");
+//        if (flowMap!=null) {
+//            for (String flowKey : flowMap.keySet()) {
+//                log.info(flowKey + " : " + flowMap.get(flowKey).size());
+//            }
+//        }
+        System.out.println(getPcapSize("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\1\\pcaps\\4.pcap"));
     }
 }

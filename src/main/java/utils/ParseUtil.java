@@ -253,7 +253,7 @@ public class ParseUtil {
     public static ArrayList<String[]> getTimeStamps(String timestampFile) {
         File file = new File(timestampFile);
         BufferedReader reader = null;
-        String temp = null;
+        String temp;
         ArrayList<String[]> timestamps = new ArrayList<>();
         try {
             reader = new BufferedReader(new FileReader(file));
@@ -263,6 +263,13 @@ public class ParseUtil {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            if (reader!=null) {
+                try {
+                    reader.close();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
         }
         return timestamps;
     }
@@ -775,6 +782,11 @@ public class ParseUtil {
         double alpha = 0.7;
         double beta = 0.15;
         double gamma = 0.15;
+
+        double phi = 0.6;
+        double omega = 0.4;
+
+        double inevitableDegree = 0;
         double contextDegree;
         double pointDegree;
         double sizeDegree;
@@ -802,6 +814,27 @@ public class ParseUtil {
             }
         }
         pointDegree = (double) matchedPointCount / matchFlows.size();
+
+        //calculate inevitableDegree
+        List<BasicFlow> inevitableFlows = DBUtil.getInevitableFlows(multiFlowId);
+        if (!inevitableFlows.isEmpty()) {
+            //如果没有主流是否要认为该多流是不稳定的
+            int inevitableCount = 0;
+            for (BasicFlow invitableFLow : inevitableFlows) {
+                for (BasicFlow mFlow : matchFlows) {
+                    if ( (invitableFLow.getServerHost().equals(mFlow.getServerHost()) && invitableFLow.getServerHost().length()>1)
+                    || getFlowFeatureCosineSimilarity(invitableFLow.getFeature(), mFlow.getFeature())>=0.9){
+                        inevitableDegree += getFlowFeatureCosineSimilarity(invitableFLow.getFeature(), mFlow.getFeature());
+                        inevitableCount++;
+                        break;
+                    }
+                }
+            }
+            log.info("For context[" + multiFlowId + "] match " + inevitableCount + " of all " + inevitableFlows.size());
+            inevitableDegree /= inevitableFlows.size();
+        } else {
+            inevitableDegree = 0;
+        }
 
         //contextDegree
         String flow_rel_query_sql = "SELECT * FROM " + DBUtil.FLOWRELATION_TABLE + " WHERE `multiflowId` = " + multiFlowId;
@@ -910,7 +943,7 @@ public class ParseUtil {
                 contextDegree = 0;
             }
         }
-        return alpha * contextDegree + beta * pointDegree + gamma * sizeDegree;
+        return alpha * (omega * inevitableDegree +  phi * contextDegree) + beta * pointDegree + gamma * sizeDegree;
     }
 
 

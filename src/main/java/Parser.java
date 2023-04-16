@@ -17,6 +17,8 @@ public class Parser {
 
     public static final Logger log = LoggerFactory.getLogger(Parser.class);
 
+    public static final int DO_BACK_SEARCH_COUNT = 2;
+
     public static void parse(String pkgTime) {
         String timestampFile = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\" + pkgTime + "\\pcaps\\timestamp.txt";
         String pcapFIle = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\output\\" + pkgTime + "\\pcaps\\com.vkontakte.android.pcap";
@@ -33,7 +35,7 @@ public class Parser {
         String filteredPcap = PcapUtil.filterPcapBySni(pcapFileName, appId, outputPath);
         List<String> pcaps = PcapUtil.splitPcapByThreshold(filteredPcap, 3000, 30, outputPath);
         ParseUtil.setSNI(pcapFileName);
-        LinkedList<Integer> behaviorSequence = Parser.match(pcaps, false);
+        LinkedList<Integer> behaviorSequence = Parser.match(appId, pcaps, false);
         return new Pair<>(appId, behaviorSequence);
     }
 
@@ -65,7 +67,7 @@ public class Parser {
         return matchApp != 0 ? matchApp : -1;
     }
 
-    public static LinkedList<Integer> match(List<String> files, boolean flag){
+    public static LinkedList<Integer> match(int appId, List<String> files, boolean flag){
         LinkedList<Integer> behaviorSequence = new LinkedList<>();
         try {
             Set<String> dbSNIs = DBUtil.getSNIFromDB(1);
@@ -90,12 +92,27 @@ public class Parser {
 //            flows.forEach(flow->log.info(flow.getServerHost()));
             int toDepth;
             try {
-                Pair<Integer, Integer> pair = ParseUtil.matchFlow(flows, currentDepth, 1, flag);
+                int count = 0;
+                Pair<Integer, Integer> pair = ParseUtil.matchFlow(flows, currentDepth, appId, flag);
                 toDepth = pair.first();
+                //
                 if (toDepth<0) {
-                    log.info("Fail to match, try next.");
-                    continue;
+                    while(count < DO_BACK_SEARCH_COUNT && currentDepth-count>=0) {
+                        count++;
+                        log.info("Fail to match in Depth " + currentDepth + " try doBack Search Count " + count);
+                        toDepth = ParseUtil.matchFlow(flows, currentDepth-count, appId, flag).first();
+                        if (toDepth>=0) {
+                            break;
+                        }
+                    }
+
+                    if (toDepth < 0) {
+                        log.info("Fail to match, try next.");
+                        continue;
+                    }
+
                 }
+                //
                 currentDepth = toDepth;
                 behaviorSequence.add(pair.second());
             } catch (SQLException e) {

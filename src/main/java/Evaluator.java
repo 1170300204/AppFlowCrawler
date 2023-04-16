@@ -3,10 +3,7 @@ import org.slf4j.LoggerFactory;
 import org.testng.internal.collections.Pair;
 import utils.EvaluationUtil;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -235,14 +232,41 @@ public class Evaluator {
         return data;
     }
 
-    public static List<Pair<Integer, LinkedList<Integer>>> getData(String dirPath, int count) {
+    public static List<Pair<Integer, LinkedList<Integer>>> getData(String dirPath, int countFrom, int countTo) {
         List<Pair<Integer, LinkedList<Integer>>> data = new ArrayList<>();
-        for(int i = 1;i <= count;i++) {
+        for(int i = countFrom;i <= countTo;i++) {
             String pcapFile = dirPath + i + ".pcap";
             Pair<Integer, LinkedList<Integer>> pair = Parser.match(pcapFile);
             data.add(pair);
         }
         return data;
+    }
+
+    public static void saveData(List<Pair<Integer, LinkedList<Integer>>> data, String fileName) {
+        try {
+            File dataFile = new File(fileName);
+            if (!dataFile.exists()) {
+                dataFile.createNewFile();
+            }
+            FileWriter writer = new FileWriter(dataFile);
+            BufferedWriter out = new BufferedWriter(writer);
+            for (Pair<Integer, LinkedList<Integer>> pair: data){
+                writer.write(pair.first() + " ");
+                LinkedList<Integer> behaviors = pair.second();
+                if (!behaviors.isEmpty()) {
+                    for (int i = 0; i < behaviors.size() - 1; i++) {
+                        writer.write(behaviors.get(i) + ",");
+                    }
+                    writer.write(behaviors.get(behaviors.size()-1));
+                }
+                writer.write("\n");
+            }
+            out.flush();
+            out.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("Fail to save data : " + fileName);
+        }
     }
 
     public static void main(String[] args) {

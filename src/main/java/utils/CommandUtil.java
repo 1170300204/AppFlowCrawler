@@ -189,6 +189,15 @@ public class CommandUtil {
         DriverUtil.sleep(0.5);
     }
 
+    public static void startTcpdumpNormal(int pcapFileName) throws IOException {
+        log.info("Starting Tcpdump ...");
+        DriverUtil.sleep(0.5);
+        CommandUtil.executeCmd("adb -s 127.0.0.1:62001 shell killall tcpdump ");
+        DriverUtil.sleep(0.8);
+        CommandUtil.executeCmdWithoutOutput("adb -s 127.0.0.1:62001 shell tcpdump -i wlan0 -p -s 0 -w /sdcard/pcaps/" + pcapFileName + ".pcap &");
+        DriverUtil.sleep(0.5);
+    }
+
     public static void endTcpdump(String pcapFileName) {
         log.info("Ending Tcpdump ...");
         CommandUtil.executeCmd("adb -s " + ConfigUtil.getUdid() + " shell killall tcpdump ");
@@ -198,5 +207,13 @@ public class CommandUtil {
         DriverUtil.sleep(1);
     }
 
+    public static void endTcpdumpNormal(int pcapFileName, String outputDir) {
+        log.info("Ending Tcpdump ...");
+        CommandUtil.executeCmd("adb -s 127.0.0.1:62001 shell killall tcpdump ");
+        DriverUtil.sleep(1);
+        log.info("Moving pcap file to output Dir ...");
+        CommandUtil.executeCmd("adb -s 127.0.0.1:62001 pull /sdcard/pcaps/" + pcapFileName + ".pcap \"" + outputDir + File.separator + pcapFileName + ".pcap\"");
+        DriverUtil.sleep(1);
+    }
 
 }

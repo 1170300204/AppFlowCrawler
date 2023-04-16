@@ -25,6 +25,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Driver;
 import java.time.Duration;
@@ -41,6 +42,33 @@ public final class DriverUtil {
     private static int screenshotCount = 0;
     private static final int scale = 1;
     private static final int DEFAULT_PICTURE_POINT_RADIUS = 20;
+
+    public static AppiumDriver getAndroidAppiumDriverNormal(String appPackage, String appActivity) throws Exception {
+        log.info("App Package: " + appPackage);
+
+        DesiredCapabilities capabilities = new DesiredCapabilities();
+        capabilities.setCapability(MobileCapabilityType.PLATFORM_NAME, "Android");
+        capabilities.setCapability(MobileCapabilityType.DEVICE_NAME, "127.0.0.1:62001");
+        capabilities.setCapability(MobileCapabilityType.UDID, "127.0.0.1:62001");
+        capabilities.setCapability(MobileCapabilityType.NEW_COMMAND_TIMEOUT, 1800);
+        capabilities.setCapability("appPackage", appPackage);
+
+        capabilities.setCapability("appActivity", appActivity);
+        capabilities.setCapability(MobileCapabilityType.NO_RESET, true); //Don't delete app data
+        capabilities.setCapability("unicodeKeyboard", true); //支持中文输入
+        capabilities.setCapability("resetKeyboard", true); //重置输入法为系统默认
+
+        String url = "http://0.0.0.0:4723/wd/hub";
+
+        log.info("URL: " + url);
+        driver = new AndroidDriver(new URL(url), capabilities);
+
+        deviceHeight = driver.manage().window().getSize().getHeight();
+        deviceWidth = driver.manage().window().getSize().getWidth();
+
+        return driver;
+
+    }
 
     public static AppiumDriver getAndroidAppiumDriver(String appPackage, String appActivity, String udid, String port) throws Exception {
         log.info("App Package: " + appPackage);

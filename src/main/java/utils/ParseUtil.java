@@ -34,7 +34,7 @@ public class ParseUtil {
 
     public static final Map<String, String> SNI = new HashMap<>();
 
-    public static final double MULTIFLOW_SIMILARITY_THRESHOLD = 0.85;
+    public static final double MULTIFLOW_SIMILARITY_THRESHOLD = 0.84;
 
 
     public static final int VALID_PACKET_COUNT_THRESHOLD = 10;
@@ -436,8 +436,9 @@ public class ParseUtil {
             for (BasicFlow flow : flows) {
                 for (BasicFlow bf: extFlows) {
                     if (flow.getServerHost().trim().equals(bf.getServerHost().trim()) && flow.getDstPort()==bf.getDstPort()
-                            && getFlowFeatureCosineSimilarity(flow.getFeature(),bf.getFeature())>=0.9
-                            && !matches.containsValue(bf)) {
+                            && getFlowFeatureCosineSimilarity(flow.getFeature(),bf.getFeature())>=0.8
+//                            && !matches.containsValue(bf)
+                    ) {
                         flow.setId(bf.getId());
                         matches.put(flow,bf);
                         mflows.add(flow);
@@ -496,7 +497,7 @@ public class ParseUtil {
                 }
             }
             //对于未在库中匹配到对应流的 为其新建流添加到库中并更新流关系
-            /*
+
             List<BasicFlow> nflows = new ArrayList<>(flows);
             nflows.removeAll(mflows);
             //直接设为1-1 匹配的时候忽略1-1的边()
@@ -523,7 +524,7 @@ public class ParseUtil {
                     DBUtil.storeFlowRel(flow, flow1, contextId);
                 }
             }
-            */
+
         }
     }
 
@@ -862,7 +863,7 @@ public class ParseUtil {
             double res = 0;
             for (BasicFlow flow : matchFlows) {
                 for (BasicFlow f : flows) {
-                    if (flow.getServerHost().equals(f.getServerHost()) || getFlowFeatureCosineSimilarity(flow.getFeature(),f.getFeature()) >= 0.99) {
+                    if (flow.getServerHost().equals(f.getServerHost()) || getFlowFeatureCosineSimilarity(flow.getFeature(),f.getFeature()) >= 0.95) {
 //                    if (flow.getServerHost().equals(f.getServerHost())) {
                         count++;
                         res += getFlowFeatureCosineSimilarity(flow.getFeature(), f.getFeature());

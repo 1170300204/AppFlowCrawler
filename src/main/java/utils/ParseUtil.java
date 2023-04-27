@@ -24,7 +24,7 @@ public class ParseUtil {
 
     public static Logger log = LoggerFactory.getLogger(ParseUtil.class);
 
-    public static final String PACKAGE_NAME = "com.vkontakte.android";
+    public static String PACKAGE_NAME = "com.vkontakte.android";
 
     public static final String PROJECT_PATH = System.getProperty("user.dir") + File.separator;
     public static final String EDITCAP_PATH = "\"C:\\Program Files\\Wireshark\\editcap.exe\"";
@@ -34,7 +34,7 @@ public class ParseUtil {
 
     public static final Map<String, String> SNI = new HashMap<>();
 
-    public static final double MULTIFLOW_SIMILARITY_THRESHOLD = 0.84;
+    public static double MULTIFLOW_SIMILARITY_THRESHOLD = 0.85;
 
 
     public static final int VALID_PACKET_COUNT_THRESHOLD = 10;
@@ -436,7 +436,7 @@ public class ParseUtil {
             for (BasicFlow flow : flows) {
                 for (BasicFlow bf: extFlows) {
                     if (flow.getServerHost().trim().equals(bf.getServerHost().trim()) && flow.getDstPort()==bf.getDstPort()
-                            && getFlowFeatureCosineSimilarity(flow.getFeature(),bf.getFeature())>=0.8
+//                            && getFlowFeatureCosineSimilarity(flow.getFeature(),bf.getFeature())>=0.8 //todo
 //                            && !matches.containsValue(bf)
                     ) {
                         flow.setId(bf.getId());
@@ -785,7 +785,6 @@ public class ParseUtil {
 //        double alpha = 0.85;
 //        double beta = 0.075;
 //        double gamma = 0.075;
-        // hello thank you i am a dog
 
         double alpha = 0.9;
         double beta = 0.1;
@@ -831,7 +830,8 @@ public class ParseUtil {
             for (BasicFlow invitableFLow : inevitableFlows) {
                 for (BasicFlow mFlow : matchFlows) {
                     if ( (invitableFLow.getServerHost().equals(mFlow.getServerHost()) && invitableFLow.getServerHost().length()>1)
-                    || getFlowFeatureCosineSimilarity(invitableFLow.getFeature(), mFlow.getFeature())>=0.9){
+                    || getFlowFeatureCosineSimilarity(invitableFLow.getFeature(), mFlow.getFeature())>=0.98
+                    ){
                         inevitableDegree += getFlowFeatureCosineSimilarity(invitableFLow.getFeature(), mFlow.getFeature());
                         inevitableCount++;
                         break;
@@ -889,7 +889,7 @@ public class ParseUtil {
                 int flowId2 = fr.getFlowId2();
                 BasicFlow flow1 = DBUtil.getFLowById(flowId1);
                 BasicFlow flow2 = DBUtil.getFLowById(flowId2);
-                if (null == flow1 || null == flow2) {
+                if (null == flow1 || null == flow2 || fr.getFlowcount1()<=1 || fr.getFlowcount2()<=1) {
                     continue;
                 }
 
@@ -904,7 +904,9 @@ public class ParseUtil {
                     mflow2 = mflow2_ops.get();
                 }
 
+                boolean mf1b = false, mf2b  = false;
                 if (mflow1 == null) {
+                    mf1b = true;
                     double max = 0;
                     BasicFlow tFlow = null;
                     for (BasicFlow flow : matchFlows) {
@@ -914,9 +916,11 @@ public class ParseUtil {
                             tFlow = flow;
                         }
                     }
-                    mflow1 = tFlow;
+                    if (max>=0.98)
+                        mflow1 = tFlow;
                 }
                 if (mflow2 == null) {
+                    mf2b = true;
                     double max = 0;
                     BasicFlow tFlow = null;
                     for (BasicFlow flow : matchFlows) {
@@ -926,7 +930,8 @@ public class ParseUtil {
                             tFlow = flow;
                         }
                     }
-                    mflow2 = tFlow;
+                    if (max>=0.98)
+                        mflow2 = tFlow;
                 }
 
                 if (null== mflow1 || null == mflow2) {
@@ -935,15 +940,24 @@ public class ParseUtil {
                 relCount++;
                 double cs1 = getFlowFeatureCosineSimilarity(flow1.getFeature(), mflow1.getFeature());
                 double cs2 = getFlowFeatureCosineSimilarity(flow2.getFeature(), mflow2.getFeature());
+                double degree ;
                 if (fr.isPO) {
                     if (fr.POtype == mflow1.getTimestamp().before(mflow2.getTimestamp())) {
-                        res += cs1*cs2;
+//                        degree = cs1*cs2;
+                        degree = 1;
                     } else {
-                        res += 0;
+                        if (!mf1b && !mf2b) {
+                            degree = 0;
+                        } else {
+                            degree = 0;
+                            relCount--;
+                        }
                     }
                 } else {
-                    res += cs1 * (fr.flowcount1> fr.flowcount2? (double)fr.flowcount2/fr.flowcount1 : (double)fr.flowcount1/fr.flowcount2) * cs2;
+                    degree = cs1 * (fr.flowcount1> fr.flowcount2? (double)fr.flowcount2/fr.flowcount1 : (double)fr.flowcount1/fr.flowcount2) * cs2;
                 }
+                res += degree;
+                log.info("Match fr " + fr.getRelId() + " :" + degree);
             }
             if (relCount!=0) {
                 contextDegree = res/relCount;

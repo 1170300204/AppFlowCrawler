@@ -73,7 +73,7 @@ public class Evaluator {
             fnList.removeAll(prdBehaviorSequence);
             behaviorFN = fnList.size();
 
-            double[] indicators = EvaluationUtil.BC_Result_Behavior_Evaluation(behaviorTP, behaviorFP, behaviorFN);
+            double[] indicators = EvaluationUtil.BC_Result_3_Evaluation(behaviorTP, behaviorFP, behaviorFN);
             if (indicators.length!=4) {
                 log.error("Evaluation indicators count Error. Excepted : " + 4 + " , actual : " + indicators.length);
                 return;
@@ -85,7 +85,7 @@ public class Evaluator {
             count ++;
         }
 
-        double[] appIndicators = EvaluationUtil.BC_Result_App_Evaluation(appTP, appFP, appTN, appFN);
+        double[] appIndicators = EvaluationUtil.BC_Result_4_Evaluation(appTP, appFP, appTN, appFN);
         if (appIndicators.length!=4) {
             log.error("App Evaluation indicators count Error. Excepted : " + 4 + " , actual : " + appIndicators.length);
             return;
@@ -162,7 +162,7 @@ public class Evaluator {
             count ++;
         }
 
-        double[] appIndicators = EvaluationUtil.BC_Result_App_Evaluation(appTP, appFP, appTN, appFN);
+        double[] appIndicators = EvaluationUtil.BC_Result_4_Evaluation(appTP, appFP, appTN, appFN);
         if (appIndicators.length!=4) {
             log.error("App Evaluation indicators count Error. Excepted : " + 4 + " , actual : " + appIndicators.length);
             return;
@@ -176,7 +176,7 @@ public class Evaluator {
         log.info("==================================");
         if (count!=0) {
             log.info(behaviorTP + " " + behaviorFP + " " + behaviorFN);
-            double[] indicators = EvaluationUtil.BC_Result_Behavior_Evaluation(behaviorTP, behaviorFP, behaviorFN);
+            double[] indicators = EvaluationUtil.BC_Result_3_Evaluation(behaviorTP, behaviorFP, behaviorFN);
             if (indicators.length!=4) {
                 log.error("Evaluation indicators count Error. Excepted : " + 4 + " , actual : " + indicators.length);
                 return;

@@ -16,7 +16,7 @@ public class EvaluationUtil {
 
     public static final Logger log = LoggerFactory.getLogger(EvaluationUtil.class);
 
-    public static double[] BC_Result_App_Evaluation(int tp, int fp, int tn, int fn) {
+    public static double[] BC_Result_4_Evaluation(int tp, int fp, int tn, int fn) {
         double accuracy;
         double precision;
         double recall;
@@ -34,7 +34,7 @@ public class EvaluationUtil {
         return new double[]{accuracy,precision,recall,f1};
     }
 
-    public static double[] BC_Result_Behavior_Evaluation(int tp, int fp, int fn) {
+    public static double[] BC_Result_3_Evaluation(int tp, int fp, int fn) {
         double accuracy;
         double precision;
         double recall;

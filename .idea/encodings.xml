@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Encoding">
-    <file url="file://$PROJECT_DIR$/csv/uploadPic.pcap_Flow.csv" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/csv/uploadPic2.pcap_Flow.csv" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/csv/uploadPic3.pcap_Flow.csv" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/csv/uploadPic4_onlyUpLoad.pcap_Flow.csv" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/csv/uploadPic5.pcap_Flow.csv" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/testData/3/vk/uploadPic/csvs/uploadPic.pcap_Flow.csv" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/testData/3/vk/uploadPic/csvs/uploadPic.pcap_Flow.csv" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/testData/3/vk/uploadPic/csvs/uploadPic2.pcap_Flow.csv" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/testData/3/vk/uploadPic/csvs/uploadPic2.pcap_Flow.csv" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/testData/3/vk/uploadPic/csvs/uploadPic3.pcap_Flow.csv" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/testData/3/vk/uploadPic/csvs/uploadPic3.pcap_Flow.csv" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/testData/3/vk/uploadPic/csvs/uploadPic4_onlyUpLoad.pcap_Flow.csv" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/testData/3/vk/uploadPic/csvs/uploadPic4_onlyUpLoad.pcap_Flow.csv" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/testData/3/vk/uploadPic/csvs/uploadPic5.pcap_Flow.csv" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/testData/3/vk/uploadPic/csvs/uploadPic5.pcap_Flow.csv" charset="GBK" />
   </component>
 </project>

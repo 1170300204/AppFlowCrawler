@@ -88,10 +88,45 @@ public class DataCapture {
         }
     }
 
+    public static void testData4(int from, int count) {
+        int threshold = 15;
+        try {
+            for (int i = from ; i < from + count; i++) {
+                CommandUtil.startTcpdumpNormal(i);
+                AppiumDriver driver = DriverUtil.getAndroidAppiumDriverNormal("com.vkontakte.android", "com.vkontakte.android.MainActivity");
+                DriverUtil.sleep(15);
+
+//                driver.findElement(By.xpath("//*[contains(@resource-id,'com.vkontakte.android:id/tab_discover')]")).click();
+//                DriverUtil.sleep(20);
+//
+//                driver.findElement(By.xpath("//*[contains(@resource-id,'com.vkontakte.android:id/iv_icon_right')]")).click();
+//                DriverUtil.sleep(15);
+//
+//                driver.findElement(By.xpath("//*[contains(@resource-id,'com.vkontakte.android:id/photo')]")).click();
+//                DriverUtil.sleep(15);
+//
+//                driver.findElement(By.xpath("//*[contains(@resource-id,'com.vkontakte.android:id/profile_send_gift')]")).click();
+//                DriverUtil.sleep(15);
+                driver.findElement(By.xpath("//*[contains(@resource-id,'com.vkontakte.android:id/post_profile_btn')]")).click();
+                DriverUtil.sleep(15);//1646
+
+                driver.findElement(By.xpath("//*[contains(@resource-id,'com.vkontakte.android:id/profile_send_gift')]")).click();
+                DriverUtil.sleep(15);//1654
+
+                driver.quit();
+                CommandUtil.endTcpdumpNormal(i,"D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\2\\pcaps");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            CommandUtil.executeCmd("adb -s 127.0.0.1:62001 shell killall tcpdump ");
+        }
+    }
+
     public static void main(String[] args) throws Exception {
 //        testData1(1, 20);
 //        testData2(21,20);
-        testData3(41,30);
+//        testData3(41,30);
+        testData4(72,19);
     }
 
 }

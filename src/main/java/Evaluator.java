@@ -1,7 +1,9 @@
+import jnet.PcapUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.internal.collections.Pair;
 import utils.EvaluationUtil;
+import utils.ParseUtil;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -105,7 +107,7 @@ public class Evaluator {
         }
     }
 
-    public static void BC_Result1(List<Pair<Integer, LinkedList<Integer>>> predicted, List<Pair<Integer, LinkedList<Integer>>> actual, int label) {
+    public static void BC_Result1(List<Pair<Integer, LinkedList<Integer>>> predicted, List<Pair<Integer, LinkedList<Integer>>> actual, int label, int fromCount, int toCount) {
         if (null == predicted || null == actual || predicted.isEmpty() || actual.isEmpty() || predicted.size() != actual.size())    return;
         int appTP = 0;
         int appFP = 0;
@@ -118,7 +120,7 @@ public class Evaluator {
         int behaviorFP = 0;//表示模型检测到的行为序列与实际行为序列不匹配的数量
         int behaviorFN = 0;// 表示实际行为序列中未被检测到的序列数量
 
-        for (int i = 0; i < predicted.size(); i++) {
+        for (int i = fromCount-1; i <= toCount-1; i++) {
 
             Pair<Integer, LinkedList<Integer>> prdPair = predicted.get(i);
             int prdApp = prdPair.first();
@@ -236,7 +238,19 @@ public class Evaluator {
         List<Pair<Integer, LinkedList<Integer>>> data = new ArrayList<>();
         for(int i = countFrom;i <= countTo;i++) {
             String pcapFile = dirPath + i + ".pcap";
-            Pair<Integer, LinkedList<Integer>> pair = Parser.match(pcapFile);
+            log.info(pcapFile);
+            int appId = Parser.matchApp(pcapFile);
+            String outputPath = new File(pcapFile).getParentFile().getParent() + File.separator + "temp";
+            String filteredPcap = PcapUtil.filterPcapBySni(pcapFile, appId, outputPath);
+            List<String> pcaps = PcapUtil.splitPcapByThreshold(filteredPcap, 3000, 30, outputPath);
+            if (null!=pcaps && pcaps.size()>=1) {
+                pcaps.remove(0);
+            }
+            ParseUtil.setSNI(pcapFile);
+            LinkedList<Integer> behaviors = Parser.match(1, pcaps, false);
+
+            Pair<Integer, LinkedList<Integer>> pair = new Pair<>(appId, behaviors);
+
             data.add(pair);
         }
         return data;
@@ -254,15 +268,15 @@ public class Evaluator {
                 writer.write(pair.first() + " ");
                 LinkedList<Integer> behaviors = pair.second();
                 if (!behaviors.isEmpty()) {
-                    for (int i = 0; i < behaviors.size() - 1; i++) {
-                        writer.write(behaviors.get(i) + ",");
+                    for (int i = 0; i < behaviors.size(); i++) {
+                        if (i!=0)   writer.write(",");
+                        writer.write(behaviors.get(i)+"");
                     }
-                    writer.write(behaviors.get(behaviors.size()-1));
                 }
                 writer.write("\n");
             }
-            out.flush();
-            out.close();
+            writer.flush();
+            writer.close();
         } catch (Exception e) {
             e.printStackTrace();
             log.error("Fail to save data : " + fileName);

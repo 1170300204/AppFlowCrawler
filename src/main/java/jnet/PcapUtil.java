@@ -104,7 +104,7 @@ public class PcapUtil {
                         dumper[0] = null;
                     }
                 }
-                if (packet.getTotalSize() < minLength)    return;
+//                if (packet.getTotalSize() < minLength)    return;
                 PcapHeader header = packet.getCaptureHeader();
                 long timestamp = header.timestampInMillis();
                 if (previousTimestamp!=0 && timestamp - previousTimestamp >= threshold) {

@@ -782,9 +782,14 @@ public class ParseUtil {
 
 
     public static double getMultiFLowSimilarity_new(List<BasicFlow> matchFlows, int multiFlowId, boolean flag) throws SQLException {
-        double alpha = 0.85;
-        double beta = 0.075;
-        double gamma = 0.075;
+//        double alpha = 0.85;
+//        double beta = 0.075;
+//        double gamma = 0.075;
+        // hello thank you i am a dog
+
+        double alpha = 0.9;
+        double beta = 0.1;
+        double gamma = 0;
 
         double phi = 0.6;
         double omega = 0.4;

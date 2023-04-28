@@ -270,6 +270,56 @@ public class DataCapture {
         }
     }
 
+    public static void weiboUploadPic(int from, int count) {
+        StringBuilder timestamps;
+        try {
+            for (int i = from ; i <from+count; i++) {
+                timestamps = new StringBuilder("");
+                CommandUtil.startTcpdumpNormal(i);
+                Timestamp load_start = new Timestamp(System.currentTimeMillis());
+                AppiumDriver driver = DriverUtil.getAndroidAppiumDriverNormal("com.sina.weibo", ".MainTabActivity");
+                DriverUtil.sleep(15);
+                Timestamp load_end = new Timestamp(System.currentTimeMillis());
+                addTimeStamp(timestamps,load_start,load_end,"load1"+i,0,1);
+                DriverUtil.sleep(5);
+
+
+                driver.findElement(By.xpath("//*[contains(@resource-id,'com.sina.weibo:id/rltitleSave')]")).click();
+                DriverUtil.sleep(5);
+
+                driver.findElement(By.xpath("//android.widget.TextView[@content-desc=\"图片\"]")).click();
+                DriverUtil.sleep(6);
+
+                Timestamp postWithPic_start = new Timestamp(System.currentTimeMillis());
+//                driver.findElement(By.xpath("//*[contains(@resource-id,'/hierarchy/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.widget.FrameLayout/android.view.ViewGroup/android.widget.FrameLayout/android.view.ViewGroup/android.support.v7.widget.RecyclerView/android.widget.ImageView[1]')]")).click();
+                log.info("Please select pic");
+                DriverUtil.sleep(8);
+
+                driver.findElement(By.xpath("//*[contains(@resource-id,'com.sina.weibo:id/btn_confirm_edit')]")).click();
+                DriverUtil.sleep(8);
+
+                driver.findElement(By.xpath("//*[contains(@resource-id,'com.sina.weibo:id/nextLayout')]")).click();
+                DriverUtil.sleep(8);
+
+                driver.findElement(By.xpath("//*[contains(@resource-id,'com.sina.weibo:id/rightBtn_wrapper')]")).click();
+                DriverUtil.sleep(15);
+                Timestamp postWithPic_end = new Timestamp(System.currentTimeMillis());
+
+                addTimeStamp(timestamps,postWithPic_start,postWithPic_end,"postWithPic"+i,1,2);
+
+
+                driver.quit();
+                CommandUtil.endTcpdumpNormal(i,"D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\temp\\pcaps");
+                String timestampFile = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\temp\\pcaps\\timestamp"+i+".txt";
+                writeTimeStamp(timestamps,i,timestampFile);
+                split(timestampFile,"D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\temp\\pcaps\\" + i + ".pcap");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            CommandUtil.executeCmd("adb -s 127.0.0.1:62001 shell killall tcpdump ");
+        }
+    }
+
     public static void main(String[] args) throws Exception {
 //        testData1(1, 20);
 //        testData2(21,20);
@@ -277,7 +327,9 @@ public class DataCapture {
 //        testData4(72,19);
 //        profile_gift(10);
 //        uploadPic(17,4);
-        postWithPic(10,1);
+//        postWithPic(10,1);
+
+        weiboUploadPic(2,9);
     }
 
     public static void addTimeStamp(StringBuilder timestampBuilder, Timestamp startTime, Timestamp endTime, String action, long startDepth, long endDepth) {

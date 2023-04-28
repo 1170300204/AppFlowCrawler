@@ -955,6 +955,7 @@ public class ParseUtil {
                     }
                 } else {
                     degree = cs1 * (fr.flowcount1> fr.flowcount2? (double)fr.flowcount2/fr.flowcount1 : (double)fr.flowcount1/fr.flowcount2) * cs2;
+                    if (degree<=0.25)   relCount--;//todo
                 }
                 res += degree;
                 log.info("Match fr " + fr.getRelId() + " :" + degree);

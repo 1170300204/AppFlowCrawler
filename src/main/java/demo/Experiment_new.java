@@ -11,10 +11,7 @@ import utils.ParseUtil;
 
 import java.io.File;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Experiment_new {
 
@@ -67,7 +64,7 @@ public class Experiment_new {
         List<BasicFlow> flows = ParseUtil.getValidFlowsFromCsv(new File(csvPath));
         Pair<Integer, Integer> pair = null;
         try {
-            ParseUtil.MULTIFLOW_SIMILARITY_THRESHOLD = 0.70;
+            ParseUtil.MULTIFLOW_SIMILARITY_THRESHOLD = 0.7;
             pair = ParseUtil.matchFlow(flows, fromDep, appId, false);
         } catch (SQLException e) {
             e.printStackTrace();
@@ -100,7 +97,7 @@ public class Experiment_new {
                 }
             }
         }
-        return new int[]{TP,TN,FP,FN};
+        return new int[]{TP,FP,TN,FN};
     }
 
     public static void main(String[] args) throws Exception {
@@ -121,7 +118,8 @@ public class Experiment_new {
 //        Pair<Integer, Integer> pair = ParseUtil.matchFlow(flows, 0, 1, false);
 //        System.out.println(pair);
 
-//        extractCSV("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\bilibili\\refresh\\pcaps","D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\bilibili\\refresh\\csvs");
+//        extractCSV("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\load\\testdata\\pcaps","D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\load\\testdata\\csvs");
+//        extractCSV("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\negative\\pcaps","D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\negative\\csvs");
 
         //build之前要导入SNI
 //        build("tv.danmaku.bili","refresh", 1, 2, "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\bilibili\\refresh");
@@ -149,10 +147,55 @@ public class Experiment_new {
 //        bilibiliTestPostWithPic().forEach((pair)-> System.out.println(pair.toString())); //good
 //        bilibiliTestRefresh().forEach((pair)-> System.out.println(pair.toString())); //good
 
-//        testVK(); //92%
-//        testWeibo(); //83%
-//        testBilibili(); //90%
+//        xhsTestLoad().forEach((pair)-> System.out.println(pair.toString())); //good
+//        xhsTestProfile().forEach((pair)-> System.out.println(pair.toString())); //good
+//        xhsTestVideo().forEach((pair)-> System.out.println(pair.toString())); //good
+//        xhsTestPostWithPic().forEach((pair)-> System.out.println(pair.toString())); //good
+//        xhsTestRefresh().forEach((pair)-> System.out.println(pair.toString())); //good
 
+//            testNegative(1,0).forEach((pair)-> System.out.println(pair.toString()));
+//        testNegative(1,2).forEach((pair)-> System.out.println(pair.toString()));
+//            testNegative(6,0).forEach((pair)-> System.out.println(pair.toString()));
+//            testNegative(7,0).forEach((pair)-> System.out.println(pair.toString()));
+//            testNegative(8,0).forEach((pair)-> System.out.println(pair.toString()));
+
+//            124568
+//            1234568
+//            12346
+//            12348
+
+//        testVK(); //92% ->95
+//        testWeibo(); //83% ->95
+//        testBilibili(); //90%
+//        testXhs(); //82%
+
+        total();
+        /*
+        ==============TOTAL===============
+        Accuracy : 0.925
+        Precision : 1.0
+        Recall : 0.9125
+        F1 : 0.9542483660130718
+         */
+
+    }
+
+    public static void total() {
+        int[] vk = testVK();
+        int[] weibo = testWeibo();
+        int[] bilibili = testBilibili();
+        int[] xhs = testXhs();
+        int[] res = new int[4];
+        for (int i = 0; i < 4; i++) {
+            res[i] = vk[i] + weibo[i] + bilibili[i] + xhs[i];
+        }
+        double[] result_4_evaluation = EvaluationUtil.BC_Result_4_Evaluation(res[0], res[1], res[2], res[3]);
+        log.info("==============TOTAL===============");
+        log.info("Accuracy : " + result_4_evaluation[0]);
+        log.info("Precision : " + result_4_evaluation[1]);
+        log.info("Recall : " + result_4_evaluation[2]);
+        log.info("F1 : " + result_4_evaluation[3]);
+        log.info("==================================");
     }
 
     public static List<Pair<Integer, Integer>> testLoad() {
@@ -276,24 +319,39 @@ public class Experiment_new {
         return res;
     }
 
-    public static void testVK() {
+    public static List<Pair<Integer, Integer>> testNegative(int appId, int fromDep) {
+        List<Pair<Integer, Integer>> pairs = new ArrayList<>();
+        for (int i = 1; i <= 10; i++) {
+            String sniPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\negative\\snis\\negative" + i + ".pcap";
+            String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\negative\\csvs\\negative" + i + ".pcap_Flow.csv";
+            Pair<Integer, Integer> pair = matchBehavior(sniPath, csvPath,fromDep,appId);
+            if (pair!=null) pairs.add(pair);
+        }
+//        pairs.forEach((pair)-> System.out.println(pair.toString()));
+        return pairs;
+    }
+
+    public static int[] testVK() {
         int[] loadRes = evaluateBehavior(testLoad(), getLoadAct(), 1872);
         int[] giftRes = evaluateBehavior(testGift(), getGiftAct(), 1875);
         int[] uploadPicRes = evaluateBehavior(testUploadPic(), getUploadPicAct(), 1877);
         int[] profilePhotoRes = evaluateBehavior(testProfilePhoto(), getProfilePhotoAct(), 1878);
         int[] postWithPicRes = evaluateBehavior(testPostWithPic(), getPostWithPicAct(), 1879);
+        int[] negativeRes = evaluateBehavior(testNegative(1,2), getNegativeExample(10), 1875);
 
         int[] res = new int[4];
         for (int i = 0; i < 4; i++) {
-            res[i] = loadRes[i] + giftRes[i] + uploadPicRes[i] + profilePhotoRes[i] + postWithPicRes[i];
+            res[i] = loadRes[i] + giftRes[i] + uploadPicRes[i] + profilePhotoRes[i] + postWithPicRes[i]  + negativeRes[i];
+//            res[i] = loadRes[i] + giftRes[i] + uploadPicRes[i] + profilePhotoRes[i] + postWithPicRes[i] ;
         }
         double[] result_4_evaluation = EvaluationUtil.BC_Result_4_Evaluation(res[0], res[1], res[2], res[3]);
-        log.info("==================================");
+        log.info("================VK================");
         log.info("Accuracy : " + result_4_evaluation[0]);
         log.info("Precision : " + result_4_evaluation[1]);
         log.info("Recall : " + result_4_evaluation[2]);
         log.info("F1 : " + result_4_evaluation[3]);
         log.info("==================================");
+        return res;
     }
 
     public static List<Pair<Integer, Integer>> weiboTestLoad() {
@@ -365,7 +423,7 @@ public class Experiment_new {
         for (int i = 1; i <= 10; i++) {
             String sniPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\weibo\\comment\\testdata\\snis\\comment" + i + ".pcap";
             String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\weibo\\comment\\testdata\\csvs\\comment" + i + ".pcap_Flow.csv";
-            Pair<Integer, Integer> pair = matchBehavior(sniPath, csvPath,2,6);
+            Pair<Integer, Integer> pair = matchBehavior(sniPath, csvPath,3,6);
             if (pair!=null) pairs.add(pair);
         }
 //        pairs.forEach((pair)-> System.out.println(pair.toString()));
@@ -402,29 +460,32 @@ public class Experiment_new {
         return res;
     }
 
-    public static void testWeibo() {
+    public static int[] testWeibo() {
         int[] loadRes = evaluateBehavior(weiboTestLoad(), weiboGetLoadAct(), 1880);
         int[] postWithPicRes = evaluateBehavior(weiboTestPostWithPic(), weiboGetPostWithPicAct(), 1881);
         int[] profileRes = evaluateBehavior(weiboTestProfile(), weiboGetProfileAct(), 1882);
         int[] commentRes = evaluateBehavior(weiboTestComment(), weiboGetCommentAct(), 1883);
         int[] refreshRes = evaluateBehavior(weiboTestRefresh(), weiboGetRefreshAct(), 1884);
+        int[] negativeRes = evaluateBehavior(testNegative(6,0), getNegativeExample(10), 1880);
+
 
         int[] res = new int[4];
         for (int i = 0; i < 4; i++) {
-            res[i] = loadRes[i] + profileRes[i] + commentRes[i] + refreshRes[i] + postWithPicRes[i];
+            res[i] = loadRes[i] + profileRes[i] + commentRes[i] + refreshRes[i] + postWithPicRes[i] + negativeRes[i];
         }
         double[] result_4_evaluation = EvaluationUtil.BC_Result_4_Evaluation(res[0], res[1], res[2], res[3]);
-        log.info("==================================");
+        log.info("===============WEIBO==============");
         log.info("Accuracy : " + result_4_evaluation[0]);
         log.info("Precision : " + result_4_evaluation[1]);
         log.info("Recall : " + result_4_evaluation[2]);
         log.info("F1 : " + result_4_evaluation[3]);
         log.info("==================================");
+        return res;
     }
 
     public static List<Pair<Integer, Integer>> bilibiliTestLoad() {
         List<Pair<Integer, Integer>> pairs = new ArrayList<>();
-        for (int i = 1; i <= 10; i++) {
+        for (int i = 1; i <= 20; i++) {
             String sniPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\bilibili\\load\\testdata\\snis\\load" + i + ".pcap";
             String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\bilibili\\load\\testdata\\csvs\\load" + i + ".pcap_Flow.csv";
             Pair<Integer, Integer> pair = matchBehavior(sniPath, csvPath,0,7);
@@ -436,7 +497,7 @@ public class Experiment_new {
 
     public static List<Pair<Integer, Integer>> bilibiliGetLoadAct() {
         List<Pair<Integer, Integer>> res = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 20; i++) {
             res.add(new Pair<>(1,1885));
         }
         return res;
@@ -525,29 +586,171 @@ public class Experiment_new {
     public static List<Pair<Integer, Integer>> bilibiliGetRefreshAct() {
         List<Pair<Integer, Integer>> res = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            res.add(new Pair<>(1,1889));
+            res.add(new Pair<>(1,1895));
         }
         return res;
     }
 
-    public static void testBilibili() {
+    public static int[] testBilibili() {
         int[] loadRes = evaluateBehavior(bilibiliTestLoad(), bilibiliGetLoadAct(), 1885);
         int[] postWithPicRes = evaluateBehavior(bilibiliTestPostWithPic(), bilibiliGetPostWithPicAct(), 1888);
         int[] profileRes = evaluateBehavior(bilibiliTestProfile(), bilibiliGetProfileAct(), 1886);
         int[] videoRes = evaluateBehavior(bilibiliTestVideo(), bilibiliGetVideoAct(), 1887);
         int[] refreshRes = evaluateBehavior(bilibiliTestRefresh(), bilibiliGetRefreshAct(), 1889);
+        int[] negativeRes = evaluateBehavior(testNegative(7,0), getNegativeExample(10), 1885);
+
 
         int[] res = new int[4];
         for (int i = 0; i < 4; i++) {
-            res[i] = loadRes[i] + profileRes[i] + videoRes[i] + refreshRes[i] + postWithPicRes[i];
+            res[i] = loadRes[i] + profileRes[i] + videoRes[i] + refreshRes[i] + postWithPicRes[i] + negativeRes[i] ;
         }
         double[] result_4_evaluation = EvaluationUtil.BC_Result_4_Evaluation(res[0], res[1], res[2], res[3]);
-        log.info("==================================");
+        log.info("==============BILIBILI============");
         log.info("Accuracy : " + result_4_evaluation[0]);
         log.info("Precision : " + result_4_evaluation[1]);
         log.info("Recall : " + result_4_evaluation[2]);
         log.info("F1 : " + result_4_evaluation[3]);
         log.info("==================================");
+        return res;
+    }
+
+    public static List<Pair<Integer, Integer>> xhsTestLoad() {
+        List<Pair<Integer, Integer>> pairs = new ArrayList<>();
+        for (int i = 1; i <= 20; i++) {
+            String sniPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\load\\testdata\\snis\\load" + i + ".pcap";
+            String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\load\\testdata\\csvs\\load" + i + ".pcap_Flow.csv";
+            Pair<Integer, Integer> pair = matchBehavior(sniPath, csvPath,0,8);
+            if (pair!=null) pairs.add(pair);
+        }
+//        pairs.forEach((pair)-> System.out.println(pair.toString()));
+        return pairs;
+    }
+
+    public static List<Pair<Integer, Integer>> xhsGetLoadAct() {
+        List<Pair<Integer, Integer>> res = new ArrayList<>();
+        for (int i = 0; i < 20; i++) {
+            res.add(new Pair<>(1,1890));
+        }
+        return res;
+    }
+
+    public static List<Pair<Integer, Integer>> xhsTestProfile() {
+        List<Pair<Integer, Integer>> pairs = new ArrayList<>();
+        Map<String, String> sniFromLoad = PcapUtil.getSNIFromPcap("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\profile\\testdata\\snis\\profile_load.pcap");
+        if (sniFromLoad!=null) ParseUtil.SNI.putAll(sniFromLoad);
+        for (int i = 1; i <= 10; i++) {
+            String sniPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\profile\\testdata\\snis\\profile" + i + ".pcap";
+            String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\profile\\testdata\\csvs\\profile" + i + ".pcap_Flow.csv";
+            Pair<Integer, Integer> pair = matchBehavior(sniPath, csvPath,2,8);
+            if (pair!=null) pairs.add(pair);
+        }
+//        pairs.forEach((pair)-> System.out.println(pair.toString()));
+        return pairs;
+    }
+
+    public static List<Pair<Integer, Integer>> xhsGetProfileAct() {
+        List<Pair<Integer, Integer>> res = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            res.add(new Pair<>(1,1891));
+        }
+        return res;
+    }
+
+    public static List<Pair<Integer, Integer>> xhsTestVideo() {
+        List<Pair<Integer, Integer>> pairs = new ArrayList<>();
+        Map<String, String> sniFromLoad = PcapUtil.getSNIFromPcap("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\video\\testdata\\snis\\video_load.pcap");
+        if (sniFromLoad!=null) ParseUtil.SNI.putAll(sniFromLoad);
+        for (int i = 1; i <= 10; i++) {
+            String sniPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\video\\testdata\\snis\\video" + i + ".pcap";
+            String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\video\\testdata\\csvs\\video" + i + ".pcap_Flow.csv";
+            Pair<Integer, Integer> pair = matchBehavior(sniPath, csvPath,1,8);
+            if (pair!=null) pairs.add(pair);
+        }
+//        pairs.forEach((pair)-> System.out.println(pair.toString()));
+        return pairs;
+    }
+
+    public static List<Pair<Integer, Integer>> xhsGetVideoAct() {
+        List<Pair<Integer, Integer>> res = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            res.add(new Pair<>(1,1892));
+        }
+        return res;
+    }
+
+    public static List<Pair<Integer, Integer>> xhsTestPostWithPic() {
+        List<Pair<Integer, Integer>> pairs = new ArrayList<>();
+        Map<String, String> sniFromLoad = PcapUtil.getSNIFromPcap("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\postWithPic\\testdata\\snis\\postWithPic_load.pcap");
+        if (sniFromLoad!=null) ParseUtil.SNI.putAll(sniFromLoad);
+        for (int i = 1; i <= 10; i++) {
+            String sniPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\postWithPic\\testdata\\snis\\postWithPic" + i + ".pcap";
+            String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\postWithPic\\testdata\\csvs\\postWithPic" + i + ".pcap_Flow.csv";
+            Pair<Integer, Integer> pair = matchBehavior(sniPath, csvPath,3,8);
+            if (pair!=null) pairs.add(pair);
+        }
+//        pairs.forEach((pair)-> System.out.println(pair.toString()));
+        return pairs;
+    }
+
+    public static List<Pair<Integer, Integer>> xhsGetPostWithPicAct() {
+        List<Pair<Integer, Integer>> res = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            res.add(new Pair<>(1,1893));
+        }
+        return res;
+    }
+
+    public static List<Pair<Integer, Integer>> xhsTestRefresh() {
+        List<Pair<Integer, Integer>> pairs = new ArrayList<>();
+        Map<String, String> sniFromLoad = PcapUtil.getSNIFromPcap("D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\refresh\\testdata\\snis\\refresh_load.pcap");
+        if (sniFromLoad!=null) ParseUtil.SNI.putAll(sniFromLoad);
+        for (int i = 1; i <= 10; i++) {
+            String sniPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\refresh\\testdata\\snis\\refresh" + i + ".pcap";
+            String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\xhs\\refresh\\testdata\\csvs\\refresh" + i + ".pcap_Flow.csv";
+            Pair<Integer, Integer> pair = matchBehavior(sniPath, csvPath,1,8);
+            if (pair!=null) pairs.add(pair);
+        }
+//        pairs.forEach((pair)-> System.out.println(pair.toString()));
+        return pairs;
+    }
+
+    public static List<Pair<Integer, Integer>> xhsGetRefreshAct() {
+        List<Pair<Integer, Integer>> res = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            res.add(new Pair<>(1,1894));
+        }
+        return res;
+    }
+
+    public static int[] testXhs() {
+        int[] loadRes = evaluateBehavior(xhsTestLoad(), xhsGetLoadAct(), 1890);
+        int[] postWithPicRes = evaluateBehavior(xhsTestPostWithPic(), xhsGetPostWithPicAct(), 1893);
+        int[] profileRes = evaluateBehavior(xhsTestProfile(), xhsGetProfileAct(), 1891);
+        int[] videoRes = evaluateBehavior(xhsTestVideo(), xhsGetVideoAct(), 1892);
+        int[] refreshRes = evaluateBehavior(xhsTestRefresh(), xhsGetRefreshAct(), 1894);
+        int[] negativeRes = evaluateBehavior(testNegative(8,0), getNegativeExample(10), 1890);
+
+
+        int[] res = new int[4];
+        for (int i = 0; i < 4; i++) {
+            res[i] = loadRes[i] + profileRes[i] + videoRes[i] + refreshRes[i] + postWithPicRes[i]  + negativeRes[i];
+        }
+        double[] result_4_evaluation = EvaluationUtil.BC_Result_4_Evaluation(res[0], res[1], res[2], res[3]);
+        log.info("================XHS===============");
+        log.info("Accuracy : " + result_4_evaluation[0]);
+        log.info("Precision : " + result_4_evaluation[1]);
+        log.info("Recall : " + result_4_evaluation[2]);
+        log.info("F1 : " + result_4_evaluation[3]);
+        log.info("==================================");
+        return res;
+    }
+
+    public static List<Pair<Integer, Integer>> getNegativeExample(int count) {
+        List<Pair<Integer, Integer>> res = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            res.add(new Pair<>(-1,-1));
+        }
+        return res;
     }
 
 }

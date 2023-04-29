@@ -829,8 +829,8 @@ public class ParseUtil {
             int inevitableCount = 0;
             for (BasicFlow invitableFLow : inevitableFlows) {
                 for (BasicFlow mFlow : matchFlows) {
-                    if ( (invitableFLow.getServerHost().equals(mFlow.getServerHost()) && invitableFLow.getServerHost().length()>1)
-                    || getFlowFeatureCosineSimilarity(invitableFLow.getFeature(), mFlow.getFeature())>=0.98
+                    if ( (invitableFLow.getServerHost().trim().equals(mFlow.getServerHost().trim()) && invitableFLow.getDstPort() == mFlow.getDstPort() && invitableFLow.getServerHost().length()>1)
+                    || (invitableFLow.getServerHost().trim().length()<=2 && mFlow.getServerHost().trim().length()<=2 && getFlowFeatureCosineSimilarity(invitableFLow.getFeature(), mFlow.getFeature())>=0.98)
                     ){
                         inevitableDegree += getFlowFeatureCosineSimilarity(invitableFLow.getFeature(), mFlow.getFeature());
                         inevitableCount++;
@@ -955,7 +955,10 @@ public class ParseUtil {
                     }
                 } else {
                     degree = cs1 * (fr.flowcount1> fr.flowcount2? (double)fr.flowcount2/fr.flowcount1 : (double)fr.flowcount1/fr.flowcount2) * cs2;
-                    if (degree<=0.25)   relCount--;//todo
+                    if (degree<=0.25)   {
+                        degree = 0;
+                        relCount--;//todo
+                    }
                 }
                 res += degree;
                 log.info("Match fr " + fr.getRelId() + " :" + degree);

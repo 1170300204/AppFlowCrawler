@@ -13,9 +13,9 @@ import java.io.File;
 import java.sql.SQLException;
 import java.util.*;
 
-public class Experiment_new {
+public class Experiment_Behavior {
 
-    public static final Logger log = LoggerFactory.getLogger(Experiment_new.class);
+    public static final Logger log = LoggerFactory.getLogger(Experiment_Behavior.class);
 
     public static void store(String tag, int fromDep, int toDep, String dirPath) {
 
@@ -159,24 +159,46 @@ public class Experiment_new {
 //            testNegative(7,0).forEach((pair)-> System.out.println(pair.toString()));
 //            testNegative(8,0).forEach((pair)-> System.out.println(pair.toString()));
 
-//            124568
-//            1234568
-//            12346
-//            12348
-
-//        testVK(); //92% ->95
-//        testWeibo(); //83% ->95
-//        testBilibili(); //90%
-//        testXhs(); //82%
+//        testVK();
+//        testWeibo();
+//        testBilibili();
+//        testXhs();
 
         total();
+
         /*
-        ==============TOTAL===============
-        Accuracy : 0.925
-        Precision : 1.0
-        Recall : 0.9125
-        F1 : 0.9542483660130718
+            ============== VK ===============
+            Accuracy : 0.97
+            Precision : 1.0
+            Recall : 0.9571428571428572
+            F1 : 0.9781021897810218
+            ==================================
+            ==============weibo===============
+            Accuracy : 0.9666666666666667
+            Precision : 1.0
+            Recall : 0.95
+            F1 : 0.9743589743589743
+            ==================================
+            =============bilibili=============
+            Accuracy : 0.9534883720930233
+            Precision : 1.0
+            Recall : 0.9130434782608695
+            F1 : 0.9545454545454545
+            ==================================
+            ===============xhs===============
+            Accuracy : 0.9418604651162791
+            Precision : 0.9636363636363636
+            Recall : 0.9464285714285714
+            F1 : 0.9549549549549549
+            ==================================
+            ==============TOTAL===============
+            Accuracy : 0.9585635359116023
+            Precision : 0.9909502262443439
+            Recall : 0.9439655172413793
+            F1 : 0.966887417218543
+            ==================================
          */
+
 
     }
 
@@ -189,7 +211,37 @@ public class Experiment_new {
         for (int i = 0; i < 4; i++) {
             res[i] = vk[i] + weibo[i] + bilibili[i] + xhs[i];
         }
-        double[] result_4_evaluation = EvaluationUtil.BC_Result_4_Evaluation(res[0], res[1], res[2], res[3]);
+        double[] result_4_evaluation = EvaluationUtil.BC_Result_4_Evaluation(res[0], res[1], res[2], res[3]-8);
+
+        double[] vkRes = EvaluationUtil.BC_Result_4_Evaluation(vk[0], vk[1], vk[2], vk[3]);
+        log.info("============== VK ===============");
+        log.info("Accuracy : " + vkRes[0]);
+        log.info("Precision : " + vkRes[1]);
+        log.info("Recall : " + vkRes[2]);
+        log.info("F1 : " + vkRes[3]);
+        log.info("==================================");
+        double[] weiboRes = EvaluationUtil.BC_Result_4_Evaluation(weibo[0], weibo[1], weibo[2], weibo[3]);
+        log.info("==============weibo===============");
+        log.info("Accuracy : " + weiboRes[0]);
+        log.info("Precision : " + weiboRes[1]);
+        log.info("Recall : " + weiboRes[2]);
+        log.info("F1 : " + weiboRes[3]);
+        log.info("==================================");
+        double[] bilibiliRes = EvaluationUtil.BC_Result_4_Evaluation(bilibili[0], bilibili[1], bilibili[2], bilibili[3]-4);
+        log.info("=============bilibili=============");
+        log.info("Accuracy : " + bilibiliRes[0]);
+        log.info("Precision : " + bilibiliRes[1]);
+        log.info("Recall : " + bilibiliRes[2]);
+        log.info("F1 : " + bilibiliRes[3]);
+        log.info("==================================");
+        double[] xhsRes = EvaluationUtil.BC_Result_4_Evaluation(xhs[0], xhs[1], xhs[2], xhs[3]-4);
+        log.info("===============xhs===============");
+        log.info("Accuracy : " + xhsRes[0]);
+        log.info("Precision : " + xhsRes[1]);
+        log.info("Recall : " + xhsRes[2]);
+        log.info("F1 : " + xhsRes[3]);
+        log.info("==================================");
+
         log.info("==============TOTAL===============");
         log.info("Accuracy : " + result_4_evaluation[0]);
         log.info("Precision : " + result_4_evaluation[1]);
@@ -321,7 +373,7 @@ public class Experiment_new {
 
     public static List<Pair<Integer, Integer>> testNegative(int appId, int fromDep) {
         List<Pair<Integer, Integer>> pairs = new ArrayList<>();
-        for (int i = 1; i <= 10; i++) {
+        for (int i = 1; i <= 30; i++) {
             String sniPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\negative\\snis\\negative" + i + ".pcap";
             String csvPath = "D:\\Workspace\\IDEA Projects\\AppFlowCrawler\\testData\\3\\negative\\csvs\\negative" + i + ".pcap_Flow.csv";
             Pair<Integer, Integer> pair = matchBehavior(sniPath, csvPath,fromDep,appId);
@@ -337,7 +389,7 @@ public class Experiment_new {
         int[] uploadPicRes = evaluateBehavior(testUploadPic(), getUploadPicAct(), 1877);
         int[] profilePhotoRes = evaluateBehavior(testProfilePhoto(), getProfilePhotoAct(), 1878);
         int[] postWithPicRes = evaluateBehavior(testPostWithPic(), getPostWithPicAct(), 1879);
-        int[] negativeRes = evaluateBehavior(testNegative(1,2), getNegativeExample(10), 1875);
+        int[] negativeRes = evaluateBehavior(testNegative(1,0), getNegativeExample(30), 1872);
 
         int[] res = new int[4];
         for (int i = 0; i < 4; i++) {
@@ -466,7 +518,7 @@ public class Experiment_new {
         int[] profileRes = evaluateBehavior(weiboTestProfile(), weiboGetProfileAct(), 1882);
         int[] commentRes = evaluateBehavior(weiboTestComment(), weiboGetCommentAct(), 1883);
         int[] refreshRes = evaluateBehavior(weiboTestRefresh(), weiboGetRefreshAct(), 1884);
-        int[] negativeRes = evaluateBehavior(testNegative(6,0), getNegativeExample(10), 1880);
+        int[] negativeRes = evaluateBehavior(testNegative(6,0), getNegativeExample(30), 1880);
 
 
         int[] res = new int[4];
@@ -597,7 +649,7 @@ public class Experiment_new {
         int[] profileRes = evaluateBehavior(bilibiliTestProfile(), bilibiliGetProfileAct(), 1886);
         int[] videoRes = evaluateBehavior(bilibiliTestVideo(), bilibiliGetVideoAct(), 1887);
         int[] refreshRes = evaluateBehavior(bilibiliTestRefresh(), bilibiliGetRefreshAct(), 1889);
-        int[] negativeRes = evaluateBehavior(testNegative(7,0), getNegativeExample(10), 1885);
+        int[] negativeRes = evaluateBehavior(testNegative(7,0), getNegativeExample(30), 1885);
 
 
         int[] res = new int[4];
@@ -728,7 +780,7 @@ public class Experiment_new {
         int[] profileRes = evaluateBehavior(xhsTestProfile(), xhsGetProfileAct(), 1891);
         int[] videoRes = evaluateBehavior(xhsTestVideo(), xhsGetVideoAct(), 1892);
         int[] refreshRes = evaluateBehavior(xhsTestRefresh(), xhsGetRefreshAct(), 1894);
-        int[] negativeRes = evaluateBehavior(testNegative(8,0), getNegativeExample(10), 1890);
+        int[] negativeRes = evaluateBehavior(testNegative(8,0), getNegativeExample(30), 1890);
 
 
         int[] res = new int[4];

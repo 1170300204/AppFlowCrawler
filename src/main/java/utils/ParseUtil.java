@@ -1033,4 +1033,60 @@ public class ParseUtil {
 
     }
 
+//    <toDepth,<contextId, similarity>>
+    public static List<Pair<Integer,Pair<Integer,Double>>> matchBehavior_ergodic(List<BasicFlow> matchFlows, int fromDepth, int appId, boolean flag) throws SQLException {
+        String multiFlow_query_sql = "SELECT * FROM " + DBUtil.CONTEXT_TABLE + " WHERE `depthFrom` = " + fromDepth + " and `appId` = " + appId + " ORDER BY contextId DESC;";
+        ResultSet multiFlow_query_rs = DBUtil.doQuery(multiFlow_query_sql);
+        Map<Integer, Integer> multiFlows = new HashMap<>();
+        Map<Integer, String> multiFlowTags = new HashMap<>();//for debug
+        List<Pair<Integer,Pair<Integer,Double>>> res = new ArrayList<>();
+        while (multiFlow_query_rs.next()) {
+            int contextId = multiFlow_query_rs.getInt("contextId");
+            int toDepth = multiFlow_query_rs.getInt("depthTo");
+            String tag = multiFlow_query_rs.getString("tag");
+            multiFlows.put(contextId,toDepth);
+            multiFlowTags.put(contextId,tag);
+        }
+        if (multiFlows.size()==0)   return new ArrayList<>();
+
+        for (int mulFLowId : multiFlows.keySet()) {
+            double multiFLowSimilarity = getMultiFLowSimilarity_new(matchFlows, mulFLowId, flag);
+            log.info("Temp multiFLowSimilarity[" + mulFLowId + ":" + multiFlowTags.get(mulFLowId) + "] : " + multiFLowSimilarity);
+            res.add(new Pair<>(multiFlows.get(mulFLowId),new Pair<>(mulFLowId,multiFLowSimilarity)));
+        }
+        return res;
+    }
+
+
+//    <toDepth,<contextId, similarity>>
+    public static Pair<Integer,Pair<Integer,Double>> matchBehavior_greedy(List<BasicFlow> matchFlows, int fromDepth, int appId, boolean flag) throws SQLException {
+        String multiFlow_query_sql = "SELECT * FROM " + DBUtil.CONTEXT_TABLE + " WHERE `depthFrom` = " + fromDepth + " and `appId` = " + appId + " ORDER BY contextId DESC;";
+        ResultSet multiFlow_query_rs = DBUtil.doQuery(multiFlow_query_sql);
+        Map<Integer, Integer> multiFlows = new HashMap<>();
+        Map<Integer, String> multiFlowTags = new HashMap<>();//for debug
+        while (multiFlow_query_rs.next()) {
+            int contextId = multiFlow_query_rs.getInt("contextId");
+            int toDepth = multiFlow_query_rs.getInt("depthTo");
+            String tag = multiFlow_query_rs.getString("tag");
+            multiFlows.put(contextId,toDepth);
+            multiFlowTags.put(contextId,tag);
+        }
+        if (multiFlows.size()==0)   return new Pair<>(-1,new Pair<>(-1,0.0));
+        double maxFS = 0;
+        int maxMF = -1;
+        for (int mulFLowId : multiFlows.keySet()) {
+            double multiFLowSimilarity = getMultiFLowSimilarity_new(matchFlows, mulFLowId, flag);
+            log.info("Temp multiFLowSimilarity[" + mulFLowId + ":" + multiFlowTags.get(mulFLowId) + "] : " + multiFLowSimilarity);
+            if (multiFLowSimilarity >= maxFS) {
+                maxFS = multiFLowSimilarity;
+                maxMF = mulFLowId;
+            }
+        }
+        if(maxFS >= MULTIFLOW_SIMILARITY_THRESHOLD) {
+            log.info("Success to match multiflow[" + maxMF + ":" + multiFlowTags.get(maxMF) + "], multiFLowSimilarity = " + maxFS + ", Jump to depth " + multiFlows.get(maxMF));
+            return new Pair<>(multiFlows.get(maxMF), new Pair<>(maxMF, maxFS));
+        }
+        return new Pair<>(-1,new Pair<>(-1,0.0));
+    }
+
 }
